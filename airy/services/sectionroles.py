@@ -155,7 +155,7 @@ class SectionRolesService:
     async def update(cls,
                      guild_id: int,
                      role_id: int,
-                     entries_id: list[int],
+                     entries_id: list[int] = None,
                      hierarchy: HierarchyRoles = None,
                      delete_roles: bool = False
                      ) -> typing.Optional[DatabaseSectionRole]:
@@ -175,17 +175,18 @@ class SectionRolesService:
 
         if hierarchy is not None and hierarchy != model.hierarchy:
             model.hierarchy = hierarchy
-            await model.save()
+            await model.update()
 
-        need_add = set(entries_id) - set([e.entry_id for e in model.entries])
-        need_remove = set(entries_id) - need_add
-        if delete_roles:
-            async with asyncio.TaskGroup() as tg:
-                for entry_id in need_remove:
-                    tg.create_task(cls.bot.rest.delete_role(guild_id, entry_id))
+        if entries_id:
+            need_add = set(entries_id) - set([e.entry_id for e in model.entries])
+            need_remove = set(entries_id) - need_add
+            if delete_roles:
+                async with asyncio.TaskGroup() as tg:
+                    for entry_id in need_remove:
+                        tg.create_task(cls.bot.rest.delete_role(guild_id, entry_id))
 
-        await model.remove_entries(list(need_remove))
-        await model.add_entries(list(need_add))
+            await model.remove_entries(list(need_remove))
+            await model.add_entries(list(need_add))
         logger.info(f"SectionRole updated (id: {model.role_id} entries: {len(model.entries)}) in guild {model.guild_id}")
 
         return model

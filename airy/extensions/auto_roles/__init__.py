@@ -6,7 +6,7 @@ from airy.utils import RespondEmbed, FieldPageSource, AiryPages
 
 from airy.services.sectionroles import SectionRolesService
 
-from .menu import MenuView
+
 
 section_role_plugin = AiryPlugin('SectionRoles')
 

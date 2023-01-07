@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import typing as t
 
 import hikari
 import miru
+from fuzzywuzzy import process
+from loguru import logger
 
-from airy.models import AirySlashContext, DatabaseSectionRole, MenuViewAuthorOnly
+from airy.models import AirySlashContext, DatabaseSectionRole, MenuViewAuthorOnly, HierarchyRoles
 from airy.services.sectionroles import SectionRolesService
 from airy.static import ColorEnum, MenuEmojiEnum
 from airy.utils import utcnow, helpers, RespondEmbed
@@ -21,6 +24,18 @@ class RoleModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         self.data = ctx.values[self.item]
+        
+    
+class HierarchyModal(miru.Modal):
+    def __init__(self):
+        super().__init__("Hierarchy role")
+        self.data: t.Optional[str] = None
+        self.item = miru.TextInput(label="Hierarchy (Missing, TopDown, BottomTop)",
+                                   placeholder="For example: TopDown")
+        self.add_item(self.item)
+
+    async def callback(self, ctx: miru.ModalContext) -> None:
+        self.data = ctx.values[self.item]
 
 
 class MenuView(MenuViewAuthorOnly):
@@ -32,13 +47,13 @@ class MenuView(MenuViewAuthorOnly):
 
     @property
     def default_buttons(self):
-        return [AddRoleButton(), RemoveRoleButton(), DeleteButton(), QuitButton()]
+        return [AddRoleButton(), RemoveRoleButton(), ChangeHierarchyButton(), DeleteButton(), QuitButton()]
 
     def get_kwargs(self, model: DatabaseSectionRole):
         embed = hikari.Embed(title=f"{self.role.name}",
                              color=ColorEnum.teal,
                              timestamp=utcnow())
-        entries_description = []
+        entries_description = [f"**Hierarchy**: `{model.hierarchy.name}` \n"]
 
         for index, entry in enumerate(model.entries, 1):
             entry_role = self.ctx.bot.cache.get_role(entry.entry_id)
@@ -55,7 +70,7 @@ class MenuView(MenuViewAuthorOnly):
         model = await SectionRolesService.get(guild_id=self.ctx.guild_id, role_id=self.role.id)
 
         if not model:
-            await self.ctx.respond(embed=RespondEmbed.error("The specified group role is missing"))
+            await self.ctx.respond(embed=RespondEmbed.error("The specified section role is missing"))
             return
 
         kwargs = self.get_kwargs(model)
@@ -111,6 +126,27 @@ class DeleteButton(miru.Button):
         await context.edit_response(embed=RespondEmbed.success("Group role was deleted"),
                                     components=[])
         self.view.stop()
+        
+        
+class ChangeHierarchyButton(miru.Button):
+    def __init__(self) -> None:
+        super().__init__(style=hikari.ButtonStyle.SECONDARY, label="Change Hierarchy")
+
+    async def callback(self, context: miru.ViewContext) -> None:
+        modal = HierarchyModal()
+        await context.respond_with_modal(modal)
+        await modal.wait()
+        logger.warning([name for name, value in HierarchyRoles._member_map_.items()])
+        logger.warning(modal.data)
+        hierarchy = await asyncio.threads.to_thread(process.extractOne, modal.data,
+                                                    choices=[name for name, value in HierarchyRoles._member_map_.items()])
+        hierarchy = hierarchy[0]
+        logger.warning(hierarchy)
+        model = await SectionRolesService.update(guild_id=self.view.role.guild_id,
+                                                 role_id=self.view.role.id,
+                                                 hierarchy=HierarchyRoles.try_name(hierarchy))
+
+        await self.view.send(modal.last_context, model)
 
 
 class QuitButton(miru.Button):

@@ -188,7 +188,7 @@ class AiryPages(miru.View):
             else:
                 message = await channel_or_interaction.execute(**kwargs)
 
-        self.start(message)
+        await self.start(message)
 
 
 class FieldPageSource(menus.ListPageSource):

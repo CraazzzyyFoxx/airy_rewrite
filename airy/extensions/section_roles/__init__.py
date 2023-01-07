@@ -7,6 +7,7 @@ from airy.utils import RespondEmbed, FieldPageSource, AiryPages
 from airy.services.sectionroles import SectionRolesService
 
 from .menu import MenuView
+from ...models.bot import Airy
 
 section_role_plugin = AiryPlugin('SectionRoles')
 
@@ -16,7 +17,7 @@ section_role_plugin = AiryPlugin('SectionRoles')
     lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
 )
-@lightbulb.command("sectionrole")
+@lightbulb.command("sectionrole", "sectionrole")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def group_role_(_: AirySlashContext):
     pass
@@ -73,11 +74,18 @@ async def group_role_list(ctx: AirySlashContext):
             entry_role = ctx.bot.cache.get_role(entry.entry_id)
             entries_description.append(f"**{index}.** {entry_role.mention} (ID: {entry_role.id})")
 
-        description = f'{role.mention} (ID: {role.id}) \n>>> '
+        description = f'{role.mention} (ID: {role.id}) \n **Hierarchy**: `{model.hierarchy.name}` \n>>> '
         description += '\n'.join(entries_description)
         entries.append(hikari.EmbedField(name='\u200b', value=description, inline=True))
 
     source = FieldPageSource(entries, per_page=2)
-    source.embed.title = 'Group Roles'
+    source.embed.title = 'SectionRoles'
     pages = AiryPages(source=source, ctx=ctx, compact=True)
     await pages.send(ctx.interaction, responded=True)
+
+def load(bot: Airy) -> None:
+    bot.add_plugin(section_role_plugin)
+
+
+def unload(bot: Airy) -> None:
+    bot.remove_plugin(section_role_plugin)
