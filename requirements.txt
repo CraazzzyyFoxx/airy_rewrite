@@ -1,0 +1,16 @@
+hikari-lightbulb>=2.3.1
+hikari-miru>=2.0.1
+lru-dict>=1.1.8
+orjson>=3.8.3
+pydantic>=1.10.2
+deepdiff>=6.2.2
+python-dotenv>=0.21.0
+dateparser>=1.1.4
+click>=8.1.3
+loguru>=0.6.0
+aioredis>=2.0.1
+asyncpg>=0.27.0
+parsedatetime>=2.6
+levenshtein>=0.20.9
+fuzzywuzzy>=0.18.0
+pygount>=1.5.1

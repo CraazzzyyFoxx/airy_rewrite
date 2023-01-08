@@ -6,7 +6,6 @@ import typing as t
 import hikari
 import miru
 from fuzzywuzzy import process
-from loguru import logger
 
 from airy.models import AirySlashContext, DatabaseSectionRole, MenuViewAuthorOnly, HierarchyRoles
 from airy.services.sectionroles import SectionRolesService
@@ -24,8 +23,8 @@ class RoleModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         self.data = ctx.values[self.item]
-        
-    
+
+
 class HierarchyModal(miru.Modal):
     def __init__(self):
         super().__init__("Hierarchy role")
@@ -92,9 +91,14 @@ class AddRoleButton(miru.Button):
         await modal.wait()
         role = await helpers.parse_role(context, modal.data)
 
-        model = await SectionRolesService.update(guild_id=role.guild_id,
-                                                 role_id=self.view.role.id,
-                                                 entries_id=[role.id])
+        if not role:
+            model = await SectionRolesService.update(guild_id=role.guild_id,
+                                                     role_id=self.view.role.id,
+                                                     entries_id=[])
+        else:
+            model = await SectionRolesService.update(guild_id=role.guild_id,
+                                                     role_id=self.view.role.id,
+                                                     entries_id=[role.id])
 
         await self.view.send(modal.last_context, model)
 
@@ -109,9 +113,14 @@ class RemoveRoleButton(miru.Button):
         await modal.wait()
         role = await helpers.parse_role(context, modal.data)
 
-        model = await SectionRolesService.update(guild_id=role.guild_id,
-                                                 role_id=self.view.role.id,
-                                                 entries_id=[role.id])
+        if not role:
+            model = await SectionRolesService.update(guild_id=role.guild_id,
+                                                     role_id=self.view.role.id,
+                                                     entries_id=[])
+        else:
+            model = await SectionRolesService.update(guild_id=role.guild_id,
+                                                     role_id=self.view.role.id,
+                                                     entries_id=[role.id])
 
         await self.view.send(modal.last_context, model)
 
@@ -126,8 +135,8 @@ class DeleteButton(miru.Button):
         await context.edit_response(embed=RespondEmbed.success("Group role was deleted"),
                                     components=[])
         self.view.stop()
-        
-        
+
+
 class ChangeHierarchyButton(miru.Button):
     def __init__(self) -> None:
         super().__init__(style=hikari.ButtonStyle.SECONDARY, label="Change Hierarchy")
@@ -136,15 +145,16 @@ class ChangeHierarchyButton(miru.Button):
         modal = HierarchyModal()
         await context.respond_with_modal(modal)
         await modal.wait()
-        logger.warning([name for name, value in HierarchyRoles._member_map_.items()])
-        logger.warning(modal.data)
         hierarchy = await asyncio.threads.to_thread(process.extractOne, modal.data,
-                                                    choices=[name for name, value in HierarchyRoles._member_map_.items()])
-        hierarchy = hierarchy[0]
-        logger.warning(hierarchy)
+                                                    choices=[name for name in
+                                                             HierarchyRoles._member_map_.keys()])
+        if not hierarchy:
+            hierarchy = HierarchyRoles.Missing
+        else:
+            hierarchy = HierarchyRoles.try_name(hierarchy[0])
         model = await SectionRolesService.update(guild_id=self.view.role.guild_id,
                                                  role_id=self.view.role.id,
-                                                 hierarchy=HierarchyRoles.try_name(hierarchy))
+                                                 hierarchy=hierarchy)
 
         await self.view.send(modal.last_context, model)
 
