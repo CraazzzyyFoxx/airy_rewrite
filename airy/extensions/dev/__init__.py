@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import logging
 import shlex
 import subprocess
 import textwrap
@@ -16,14 +15,11 @@ from miru.ext import nav
 from airy.models import AuthorOnlyNavigator, AiryPrefixContext, AuthorOnlyView, DatabaseBlacklist
 from airy.utils.embeds import RespondEmbed
 
-logger = logging.getLogger(__name__)
-
 dev = lightbulb.Plugin("Development")
 dev.add_checks(lightbulb.owner_only)
 
-
 if t.TYPE_CHECKING:
-    from airy.models import Airy
+    from airy.models.bot import Airy
 
 
 class TrashButton(nav.NavButton):
@@ -86,7 +82,7 @@ async def send_paginated(
             message = await ctx.app.rest.create_message(
                 channel_id, f"{prefix}{format_output(text)}{suffix}", components=view.build()
             )
-            return view.start(message)
+            return await view.start(message)
         else:
             assert isinstance(messageable, (hikari.TextableChannel, hikari.User))
             await messageable.send(f"{prefix}{format_output(text)}{suffix}")
@@ -127,7 +123,7 @@ async def run_shell(ctx: AiryPrefixContext, code: str) -> None:
     except subprocess.TimeoutExpired as e:
         await ctx.event.message.add_reaction("❗")
         out = e.stderr or e.stdout
-        out = ":\n" + out.decode("utf-8") if out else ""
+        out: str = ":\n" + out.decode("utf-8") if out else ""  # type: ignore
 
         return await send_paginated(ctx, ctx.channel_id, "Process timed out" + out, prefix="```ansi\n", suffix="```")
 
@@ -225,14 +221,6 @@ async def eval_py(ctx: AiryPrefixContext, code: str) -> None:
             await send_paginated(ctx, ctx.author, traceback_msg, prefix="```py\n", suffix="```")
 
 
-def load(bot: "Airy") -> None:
-    bot.add_plugin(dev)
-
-
-def unload(bot: "Airy") -> None:
-    bot.remove_plugin(dev)
-
-
 @dev.command
 @lightbulb.option("code", "Code to execute.", modifier=lightbulb.OptionModifier.CONSUME_REST)
 @lightbulb.command("sh", "Run code.", pass_options=True)
@@ -303,15 +291,6 @@ async def shutdown_cmd(ctx: AiryPrefixContext) -> None:
 
 
 @dev.command
-@lightbulb.command("pg_dump", "Back up the database.", aliases=["dbbackup", "backup"])
-@lightbulb.implements(lightbulb.PrefixCommand)
-async def backup_db_cmd(ctx: AiryPrefixContext) -> None:
-    await ctx.app.backup_db()
-    await ctx.event.message.add_reaction("✅")
-    await ctx.respond("📤 Database backup complete.")
-
-
-@dev.command
 @lightbulb.option("user", "The user to manage.", type=hikari.User)
 @lightbulb.option("mode", "The mode of operation.", type=str)
 @lightbulb.command("blacklist", "Commands to manage the blacklist.", pass_options=True)
@@ -370,7 +349,15 @@ async def resetsettings_cmd(ctx: AiryPrefixContext, guild_id: int) -> None:
     if not confirmed:
         return await ctx.event.message.add_reaction("❌")
 
-    await ctx.bot.db.fetch("""delete from guild where guild_id=$1""", guild_id)
+    await ctx.bot.db.wipe_guild(guild, keep_record=True)
 
     await ctx.event.message.add_reaction("✅")
     await ctx.respond(f"✅ Wiped data for guild `{guild.id}`.")
+
+
+def load(bot: "Airy") -> None:
+    bot.add_plugin(dev)
+
+
+def unload(bot: "Airy") -> None:
+    bot.remove_plugin(dev)

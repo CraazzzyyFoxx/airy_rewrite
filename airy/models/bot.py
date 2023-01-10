@@ -12,7 +12,6 @@ import hikari
 import lightbulb
 import miru
 
-from lightbulb.app import BotApp
 from loguru import logger
 
 from airy.config import bot_config, BotConfig
@@ -22,14 +21,14 @@ from airy.models.db.impl import Database
 
 
 class _ServiceT(t.Protocol):
-    def load(self, bot: BotApp) -> None:
+    def load(self, bot: lightbulb.BotApp) -> None:
         ...
 
-    def unload(self, bot: BotApp) -> None:
+    def unload(self, bot: lightbulb.BotApp) -> None:
         ...
 
 
-class Airy(BotApp, ABC):
+class Airy(lightbulb.BotApp, ABC):
     def __init__(self):
         super(Airy, self).__init__(
             bot_config.token,
@@ -51,7 +50,7 @@ class Airy(BotApp, ABC):
             ),
 
         )
-        self.base_dir: pathlib.Path = pathlib.Path(__file__).parent.parent
+        self.base_dir: pathlib.Path = pathlib.Path(__file__).parent.parent  # type: ignore
         """Bots base directory"""
         self._user_id: t.Optional[hikari.Snowflake] = None
         """Bot ID"""
@@ -416,11 +415,11 @@ class Airy(BotApp, ABC):
         if event.guild.system_channel_id is None:
             return
 
-        me = event.guild.get_my_member()
+        me = event.guild.get_member(self.user_id)
         channel = event.guild.get_channel(event.guild.system_channel_id)
 
         assert me is not None
-        assert isinstance(channel, hikari.TextableGuildChannel)
+        assert isinstance(channel, hikari.PermissibleGuildChannel)
 
         if not channel or not (hikari.Permissions.SEND_MESSAGES & lightbulb.utils.permissions_in(channel, me)):
             return

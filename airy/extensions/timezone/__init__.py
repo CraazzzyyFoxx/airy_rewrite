@@ -65,7 +65,7 @@ async def tz_set_cmd(ctx: AirySlashContext):
         embed.description = '\n'.join([f"**{index}.** {value[0]}" for index, value in enumerate(timezones, 1)])
         view = TimezoneChoice(timezones, ctx.author)
         resp = await ctx.respond(embed=embed, components=view.build())
-        view.start(await resp.message())
+        await view.start(await resp.message())
         await view.wait()
 
         if view.status:

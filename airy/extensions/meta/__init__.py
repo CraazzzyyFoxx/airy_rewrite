@@ -1,20 +1,24 @@
-
-
-import logging
-from dataclasses import dataclass
-
 import hikari
 import lightbulb
-from pygount import SourceAnalysis
 
-import airy
+from loguru import logger
+
 from airy.models.bot import Airy
 from airy.models import AiryPlugin
+from airy.utils import RespondEmbed
 
 
 class MetaPlugin(AiryPlugin):
     def __init__(self):
         super().__init__("Meta")
+
+    async def on_guild_join(self, event: hikari.GuildJoinEvent):
+        e = RespondEmbed.success("Guild Available")
+        await self.send_guild_stats(e, event.guild)
+
+    async def on_guild_leave(self, event: hikari.GuildLeaveEvent):
+        e = RespondEmbed.error("Guild Leave")
+        await self.send_guild_stats(e, event.old_guild)
 
     async def send_guild_stats(self, e: hikari.Embed, guild: hikari.GatewayGuild):
         owner = guild.get_member(guild.owner_id)
@@ -35,27 +39,10 @@ class MetaPlugin(AiryPlugin):
         if guild.icon_url:
             e.set_thumbnail(guild.icon_url)
 
-        await mp.bot.rest.create_message(mp.bot.config.stats_channel, embed=e)
+        await mp.bot.rest.create_message(self.bot.config.stats_channel, embed=e)
 
 
 mp = MetaPlugin()
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class CodeCounter:
-    code: int = 0
-    docs: int = 0
-    empty: int = 0
-
-    def count(self) -> "CodeCounter":
-        for file in airy.ROOT_DIR.rglob("*.py"):
-            analysis = SourceAnalysis.from_file(file, "pygount", encoding="utf-8")
-            self.code += analysis.code_count
-            self.docs += analysis.documentation_count
-            self.empty += analysis.empty_count
-
-        return self
 
 
 @mp.listener(lightbulb.CommandInvocationEvent)
@@ -66,10 +53,12 @@ async def command_invoke_listener(event: lightbulb.CommandInvocationEvent) -> No
 
 
 def load(bot: Airy) -> None:
-    if not bot.d.loc:
-        bot.d.loc = CodeCounter().count()
     bot.add_plugin(mp)
+    bot.subscribe(hikari.GuildJoinEvent, mp.on_guild_join)
+    bot.subscribe(hikari.GuildLeaveEvent, mp.on_guild_leave)
 
 
 def unload(bot: Airy) -> None:
+    bot.unsubscribe(hikari.GuildJoinEvent, mp.on_guild_join)
+    bot.unsubscribe(hikari.GuildLeaveEvent, mp.on_guild_leave)
     bot.remove_plugin(mp)

@@ -66,6 +66,18 @@ CREATE TABLE IF NOT EXISTS autorole_for_member
 );
 
 
+CREATE TABLE IF NOT EXISTS reactionrole
+(
+  id serial primary key,
+  guild_id bigint not null references guild (guild_id) on delete cascade,
+  channel_id bigint not null,
+  message_id bigint not null,
+  role_id bigint not null,
+  emoji text not null,
+  constraint un_reactionrole_guild_id_channel_id_message_id_role_id unique (guild_id, channel_id, message_id, role_id)
+);
+
+
 CREATE TABLE IF NOT EXISTS blacklist
 (
     id serial primary key,

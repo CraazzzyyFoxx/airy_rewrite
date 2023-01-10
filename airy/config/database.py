@@ -15,25 +15,3 @@ class DatabaseConfig(BaseSettings):
 
 
 db_config = DatabaseConfig()
-
-
-tortoise_config = {
-    "connections": {
-        "default": {
-            "engine": "tortoise.backends.asyncpg",
-            "credentials": {
-                "database": db_config.db,
-                "host": db_config.host,  # db for docker
-                "password": db_config.password,
-                "port": db_config.port,
-                "user": db_config.user,
-            },
-        }
-    },
-    "apps": {
-        "main": {
-            "models": ["aerich.models", "airy.core.models.db"],
-            "default_connection": "default",
-        }
-    },
-}

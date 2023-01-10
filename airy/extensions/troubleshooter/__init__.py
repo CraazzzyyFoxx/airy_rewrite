@@ -21,16 +21,11 @@ REQUIRED_PERMISSIONS = (
     hikari.Permissions.VIEW_AUDIT_LOG
     | hikari.Permissions.MANAGE_ROLES
     | hikari.Permissions.MANAGE_CHANNELS
-    | hikari.Permissions.KICK_MEMBERS
-    | hikari.Permissions.BAN_MEMBERS
     | hikari.Permissions.CHANGE_NICKNAME
     | hikari.Permissions.READ_MESSAGE_HISTORY
     | hikari.Permissions.VIEW_CHANNEL
     | hikari.Permissions.SEND_MESSAGES
-    | hikari.Permissions.CREATE_PUBLIC_THREADS
-    | hikari.Permissions.CREATE_PRIVATE_THREADS
     | hikari.Permissions.SEND_MESSAGES_IN_THREADS
-    | hikari.Permissions.MANAGE_THREADS
     | hikari.Permissions.EMBED_LINKS
     | hikari.Permissions.ATTACH_FILES
     | hikari.Permissions.MENTION_ROLES
@@ -38,6 +33,8 @@ REQUIRED_PERMISSIONS = (
     | hikari.Permissions.MODERATE_MEMBERS
     | hikari.Permissions.MANAGE_MESSAGES
     | hikari.Permissions.ADD_REACTIONS
+    | hikari.Permissions.USE_EXTERNAL_EMOJIS
+    | hikari.Permissions.SPEAK
 )
 
 # Explain why the bot requires the perm
@@ -74,6 +71,7 @@ PERM_DESCRIPTIONS = {
                                          "timeout users.",
     hikari.Permissions.MANAGE_MESSAGES: "This permission is required to delete other user's messages, for example in "
                                         "the case of auto-moderation.",
+    hikari.Permissions.SPEAK: "This permission is necessary to play music",
 }
 
 
@@ -105,7 +103,7 @@ async def troubleshoot(ctx: AirySlashContext) -> None:
                         "please join the [support server!](https://discord.gg/J4Dy8dTARf)"
         )
     else:
-        content = "\n".join(content)
+        content = "\n".join(content)  # type: ignore
         embed = RespondEmbed.error(
             title="Uh Oh!",
             description=f"It looks like there may be some issues with the configuration. Please review the list "

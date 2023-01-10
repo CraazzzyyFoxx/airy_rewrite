@@ -4,7 +4,7 @@
 # import lightbulb
 # import miru
 #
-# from airy.core.models import AirySlashContext, AiryPlugin, ActionMenusModel, ActionMenusButtonModel
+# from airy.models import AirySlashContext, AiryPlugin
 # from airy.utils import (RateLimiter,
 #                         BucketType,
 #                         helpers,
@@ -12,6 +12,7 @@
 #                         RespondEmbed,
 #                         FieldPageSource,
 #                         AiryPages)
+#
 # from .enums import button_styles
 # from .menu import MenuView
 #
@@ -112,7 +113,7 @@
 #
 # @rolebutton.child()
 # @lightbulb.add_checks(has_permissions(hikari.Permissions.MANAGE_ROLES))
-# @lightbulb.option("buttonstyle", "The style of the button.", choices=["Blurple", "Grey", "Red", "Green"])
+# @lightbulb.option("buttonstyle", "The style of the button.", choices=["Blue", "Grey", "Red", "Green"])
 # @lightbulb.option("label", "The label that should appear on the button.", required=False)
 # @lightbulb.option("emoji", "The emoji that should appear in the button.", type=hikari.Emoji, required=False)
 # @lightbulb.option("role", "The role that should be handed out by the button.", type=hikari.Role)

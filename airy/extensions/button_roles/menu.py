@@ -8,7 +8,7 @@ import miru
 from airy.core import AirySlashContext, MenuViewAuthorOnly, ActionMenusModel, ActionMenusButtonModel, ActionType, Airy
 from airy.static import ColorEnum, MenuEmojiEnum
 from airy.utils import utcnow, helpers, RespondEmbed
-from .enums import button_styles
+from airy.extensions.button_roles.enums import button_styles
 
 
 class AddModal(miru.Modal):

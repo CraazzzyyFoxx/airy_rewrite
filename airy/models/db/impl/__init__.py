@@ -244,8 +244,6 @@ class Database:
             if keep_record:
                 await con.execute("""INSERT INTO guild (guild_id) VALUES ($1)""", hikari.Snowflake(guild))
 
-        await DatabaseModel._db_cache.wipe(hikari.Snowflake(guild))
-
 
 class DatabaseModel(abc.ABC):
     """Common base-class for all database model objects."""

@@ -10,6 +10,7 @@ from .menu import MenuView
 from ...models.bot import Airy
 
 section_role_plugin = AiryPlugin('SectionRoles')
+section_role_plugin.add_checks(lightbulb.guild_only)
 
 
 @section_role_plugin.command()

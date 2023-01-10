@@ -1,6 +1,3 @@
-
-import logging
-
 import hikari
 import lightbulb
 from lightbulb import plugins
@@ -10,8 +7,6 @@ from airy.models import AirySlashContext
 from airy.static import ColorEnum
 
 misc = plugins.Plugin("Misc")
-
-logger = logging.getLogger(__name__)
 
 
 @misc.command

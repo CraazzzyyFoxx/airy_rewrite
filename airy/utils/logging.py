@@ -31,5 +31,8 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
+# TODO: Запихнуть логи в файл
+
+
 def setup():
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO)

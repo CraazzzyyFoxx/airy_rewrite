@@ -26,6 +26,7 @@ class ReminderPlugin(AiryPlugin):
 
 
 reminders = ReminderPlugin()
+reminders.add_checks(lightbulb.guild_only)
 
 
 class SnoozeSelect(miru.Select):

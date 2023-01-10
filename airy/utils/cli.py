@@ -163,7 +163,7 @@ def db():
 
 async def ensure_uri_can_run() -> bool:
     dsn = f"postgres://{db_config.user}:{db_config.password}@{db_config.host}:{db_config.port}/{db_config.db}"
-    connection: asyncpg.Connection = await asyncpg.connect(dsn)
+    connection: asyncpg.Connection = await asyncpg.connect(dsn=dsn)
     await connection.close()
     return True
 
@@ -172,12 +172,9 @@ async def ensure_uri_can_run() -> bool:
 @click.option('--reason', '-r', help='The reason for this revision.', default='Initial migration')
 def init(reason):
     """Initializes the database and creates the initial revision."""
-    dsn = f"postgres://{db_config.user}:{db_config.password}@{db_config.host}:{db_config.port}/{db_config.db}"
-
     asyncio.run(ensure_uri_can_run())
 
     migrations = Migrations()
-    migrations.database_uri = dsn
     revision = migrations.create_revision(reason)
     click.echo(f'created revision V{revision.version!r}')
     click.secho(f'hint: use the `upgrade` command to apply', fg='yellow')
