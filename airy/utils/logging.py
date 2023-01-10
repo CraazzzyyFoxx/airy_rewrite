@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from loguru import logger
 
@@ -31,8 +32,8 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-# TODO: Запихнуть логи в файл
-
-
 def setup():
+    path = Path("logs").parent
+    path.mkdir(exist_ok=True)
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO)
+    logger.add("logs/airy.log", rotation="10 MB", compression="zip")
