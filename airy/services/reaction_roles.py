@@ -47,8 +47,6 @@ class ReactionRoleService(BaseService):
 
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
             return None
-        if not helpers.is_above(me, cls.bot.cache.get_member(event.guild_id, event.user_id)):
-            return
 
         if event.emoji_id:
             emoji = hikari.Emoji.parse(f"<:{event.emoji_name}:{event.emoji_id}>")

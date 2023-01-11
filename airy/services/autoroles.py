@@ -33,8 +33,6 @@ class AutoRolesService(BaseService):
         me = cls.bot.cache.get_member(event.guild_id, cls.bot.user_id)
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
             return
-        if not helpers.is_above(me, event.member):
-            return
         models = await cls.get_all_for_guild(event.guild_id)
 
         if not models:

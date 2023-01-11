@@ -3,11 +3,13 @@ import typing
 from enum import IntEnum
 
 import hikari
+import lightbulb
 
 from loguru import logger
 
 from airy.models import HierarchyRoles, DatabaseSectionRole
 from airy.services import BaseService
+from airy.utils import helpers
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -59,6 +61,13 @@ class SectionRolesService(BaseService):
 
     @classmethod
     async def on_member_update(cls, event: hikari.MemberUpdateEvent):
+        me = cls.bot.cache.get_member(event.guild_id, cls.bot.user_id)
+
+        if not me:
+            return
+
+        if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
+            return None
         if event.member is None or event.old_member is None or len(event.member.role_ids) < 1:
             return
 
