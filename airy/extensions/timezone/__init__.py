@@ -50,7 +50,7 @@ class TimezoneChoice(miru.View):
 
 
 @timezone.command()
-@lightbulb.command("timezone", "Manages timezones")
+@lightbulb.command("timezone", "Manages timezones", app_command_dm_enabled=False)
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def tz_cmd(_: AirySlashContext):
     pass

@@ -76,7 +76,7 @@ PERM_DESCRIPTIONS = {
 
 
 @troubleshooter.command
-@lightbulb.command("troubleshoot", "Diagnose and locate common configuration issues.")
+@lightbulb.command("troubleshoot", "Diagnose and locate common configuration issues.", app_command_dm_enabled=False)
 @lightbulb.implements(lightbulb.SlashCommand)
 async def troubleshoot(ctx: AirySlashContext) -> None:
 

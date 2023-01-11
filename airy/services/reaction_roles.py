@@ -32,11 +32,17 @@ class ReactionRoleService(BaseService):
 
     @classmethod
     async def on_delete_message(cls, event: hikari.MessageDeleteEvent):
-        await DatabaseReactionRole.delete_all(event.channel_id, event.message_id)
+        try:
+            await DatabaseReactionRole.delete_all(event.channel_id, event.message_id)
+        except ValueError:
+            pass
 
     @classmethod
     async def on_delete_role(cls, event: hikari.RoleDeleteEvent):
-        await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
+        try:
+            await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
+        except ValueError:
+            pass
 
     @classmethod
     async def _process(cls, event: hikari.ReactionAddEvent | hikari.ReactionDeleteEvent):

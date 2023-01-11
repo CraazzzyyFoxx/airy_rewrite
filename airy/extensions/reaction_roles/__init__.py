@@ -10,16 +10,22 @@ from airy.utils import (helpers,
                         has_permissions,
                         RespondEmbed)
 
-
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
-
 
 reaction_roles_plugin = AiryPlugin("RoleButtons")
 
 
 @reaction_roles_plugin.command
-@lightbulb.command("reactionrole", "Commands relating to reactionroles.")
+@lightbulb.add_checks(
+    lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
+    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
+)
+@lightbulb.command("reactionrole", "Commands relating to reactionroles.",
+                   app_command_default_member_permissions=(hikari.Permissions.MODERATE_MEMBERS
+                                                           | hikari.Permissions.MANAGE_ROLES),
+                   app_command_dm_enabled=False
+                   )
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def reactionrole(_: AirySlashContext) -> None:
     pass
@@ -61,6 +67,7 @@ async def reactionrole_create(ctx: AirySlashContext,
         description=f"A new reactionrole pair {emoji.mention} : {role.mention} in channel "
                     f"<#{message.channel_id}> has been created!", )
     await ctx.respond(embed=embed)
+
 
 @reactionrole.child()
 @lightbulb.add_checks(has_permissions(hikari.Permissions.MANAGE_ROLES))
@@ -119,7 +126,8 @@ async def reactionrole_show(ctx: AirySlashContext, message_link: str) -> None:
         return
 
     model_ = models[0]
-    description = [f'[Message URL](https://discord.com/channels/{model_.guild_id}/{model_.channel_id}/{model_.message_id})\n\n']
+    description = [
+        f'[Message URL](https://discord.com/channels/{model_.guild_id}/{model_.channel_id}/{model_.message_id})\n\n']
     for index, model in enumerate(models, 1):
         description.append(f"**{index}.** {model.emoji.mention} : <@&{model.role_id}>")
 

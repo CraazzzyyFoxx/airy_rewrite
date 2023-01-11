@@ -30,11 +30,22 @@ class _ServiceT(t.Protocol):
 
 class Airy(lightbulb.BotApp, ABC):
     def __init__(self):
+        intents = (
+                hikari.Intents.GUILDS
+                | hikari.Intents.GUILD_MEMBERS
+                | hikari.Intents.GUILD_BANS
+                | hikari.Intents.GUILD_EMOJIS
+                | hikari.Intents.GUILD_INVITES
+                | hikari.Intents.ALL_MESSAGE_REACTIONS
+                | hikari.Intents.ALL_MESSAGES
+                | hikari.Intents.MESSAGE_CONTENT
+        )
+
         super(Airy, self).__init__(
             bot_config.token,
             prefix="dev",
             default_enabled_guilds=bot_config.dev_guilds if bot_config.dev_mode else (),
-            intents=hikari.Intents.ALL,
+            intents=intents,
             help_slash_command=False,
             logs=None,
             banner=None,
@@ -258,7 +269,6 @@ class Airy(lightbulb.BotApp, ABC):
         """
         if len(services) > 1 or not services:
             for service in services:
-
                 self.reload_service(service)
             return
         service = services[0]

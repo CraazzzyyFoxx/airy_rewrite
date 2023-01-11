@@ -214,7 +214,7 @@ async def reminder_component_handler(plugin: AiryPlugin, event: miru.ComponentIn
 
 @reminders.command()
 @lightbulb.app_command_permissions(None, dm_enabled=False)
-@lightbulb.command("reminder", "Manage reminders!")
+@lightbulb.command("reminder", "Manage reminders!", app_command_dm_enabled=False)
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def reminder(_: AirySlashContext) -> None:
     pass

@@ -54,10 +54,9 @@ class SectionRolesService(BaseService):
         for model in models:
             if model.role_id == event.role_id:
                 await model.delete()
-
-    @classmethod
-    async def process_change_role(cls):
-        pass
+            else:
+                await model.remove_entries([entry.role_id for entry in model.entries
+                                            if entry.role_id == entry.entry_id])
 
     @classmethod
     async def on_member_update(cls, event: hikari.MemberUpdateEvent):
@@ -127,10 +126,6 @@ class SectionRolesService(BaseService):
                          role_id,
                          member.id,
                          member.guild_id)
-
-    @classmethod
-    async def check_all_member(cls, model: DatabaseSectionRole):
-        pass
 
     # API
 

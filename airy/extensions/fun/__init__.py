@@ -1,6 +1,6 @@
 import typing as t
 from enum import IntEnum
-from typing import List, Any
+from typing import Any, TYPE_CHECKING
 
 import hikari
 import lightbulb
@@ -11,6 +11,9 @@ from airy.etc import ColorEnum
 from airy.utils import helpers, RespondEmbed
 
 fun = lightbulb.Plugin("Fun")
+
+if TYPE_CHECKING:
+    from airy.models.bot import Airy
 
 
 class WinState(IntEnum):
@@ -225,7 +228,7 @@ class TicTacToeView(miru.View):
 @fun.command
 @lightbulb.option("size", "The size of the board. Default is 3.", required=False, choices=["3", "4", "5"])
 @lightbulb.option("user", "The user to play tic tac toe with!", type=hikari.Member)
-@lightbulb.command("tictactoe", "Play tic tac toe with someone!", pass_options=True)
+@lightbulb.command("tictactoe", "Play tic tac toe with someone!", pass_options=True, app_command_dm_enabled=False)
 @lightbulb.implements(lightbulb.SlashCommand)
 async def tictactoe(ctx: AirySlashContext, user: hikari.Member, size: t.Optional[str] = None) -> None:
     size_int = int(size or 3)
@@ -337,9 +340,9 @@ async def tictactoe(ctx: AirySlashContext, user: hikari.Member, size: t.Optional
 #     await ctx.respond(embed=embed)
 
 
-# def load(bot: Airy) -> None:
-#     bot.add_plugin(fun)
-#
-#
-# def unload(bot: Airy) -> None:
-#     bot.remove_plugin(fun)
+def load(bot: "Airy") -> None:
+    bot.add_plugin(fun)
+
+
+def unload(bot: "Airy") -> None:
+    bot.remove_plugin(fun)

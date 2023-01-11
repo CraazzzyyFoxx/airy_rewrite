@@ -35,4 +35,4 @@ class BaseService(abc.ABC):
         cls._is_started = False
         cls.bot.unsubscribe(hikari.StartedEvent, cls.on_startup)
         cls.bot.unsubscribe(hikari.StoppedEvent, cls.on_shutdown)
-        bot.create_task(cls.on_shutdown)
+        bot.create_task(cls.on_shutdown())

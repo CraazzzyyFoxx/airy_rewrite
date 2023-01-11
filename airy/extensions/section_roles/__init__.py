@@ -18,14 +18,18 @@ section_role_plugin.add_checks(lightbulb.guild_only)
     lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
 )
-@lightbulb.command("sectionrole", "sectionrole")
+@lightbulb.command("sectionrole", "sectionrole",
+                   app_command_default_member_permissions=(hikari.Permissions.MODERATE_MEMBERS
+                                                           | hikari.Permissions.MANAGE_ROLES),
+                   app_command_dm_enabled=False
+                   )
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def group_role_(_: AirySlashContext):
     pass
 
 
 @group_role_.child()
-@lightbulb.option('role', 'Sectionrole that will be issued when the condition is triggered ',
+@lightbulb.option('role', 'Sectionrole that will be issued when the condition is triggered',
                   type=hikari.OptionType.ROLE)
 @lightbulb.option('trigger_role', 'The role, on receipt of which the participant is given an sectionrole ',
                   type=hikari.OptionType.ROLE)
@@ -83,6 +87,7 @@ async def group_role_list(ctx: AirySlashContext):
     source.embed.title = 'SectionRoles'
     pages = AiryPages(source=source, ctx=ctx, compact=True)
     await pages.send(ctx.interaction, responded=True)
+
 
 def load(bot: Airy) -> None:
     bot.add_plugin(section_role_plugin)
