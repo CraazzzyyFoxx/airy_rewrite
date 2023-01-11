@@ -32,7 +32,6 @@ class BaseService(abc.ABC):
 
     @classmethod
     def shutdown(cls, bot: "Airy"):
-        cls.bot = None
         cls._is_started = False
         cls.bot.unsubscribe(hikari.StartedEvent, cls.on_startup)
         cls.bot.unsubscribe(hikari.StoppedEvent, cls.on_shutdown)
