@@ -15,7 +15,7 @@ from loguru import logger
 
 from airy.models import DatabaseTimer, DatabaseUser, BaseTimerEvent, timers_dict_enum_to_class, TimerEnum
 from airy.utils.tasks import IntervalLoop
-from airy.utils.time.now import utcnow
+from airy.utils.time import utcnow
 
 if t.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -91,15 +91,6 @@ class SchedulerService:
             cls._current_task.cancel()
         cls._current_timer = None
         logger.info("Scheduler shutdown complete.")
-
-    @classmethod
-    def prepare_timer(cls, model: DatabaseTimer) -> t.Optional[BaseTimerEvent]:
-        cls_ = timers_dict_enum_to_class.get(model.event)
-
-        if cls_ is None:
-            return None
-
-        return cls_(timer=model)
 
     @classmethod
     async def get_latest_timer(cls, days: int = 7) -> t.Optional[DatabaseTimer]:

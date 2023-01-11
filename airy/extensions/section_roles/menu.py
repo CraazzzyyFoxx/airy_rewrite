@@ -9,7 +9,7 @@ from fuzzywuzzy import process
 
 from airy.models import AirySlashContext, DatabaseSectionRole, MenuViewAuthorOnly, HierarchyRoles
 from airy.services.sectionroles import SectionRolesService
-from airy.static import ColorEnum, MenuEmojiEnum
+from airy.etc import ColorEnum, MenuEmojiEnum
 from airy.utils import utcnow, helpers, RespondEmbed
 
 

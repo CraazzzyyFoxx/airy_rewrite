@@ -39,13 +39,7 @@ class Airy(lightbulb.BotApp, ABC):
             logs=None,
             banner=None,
             cache_settings=hikari.impl.config.CacheSettings(
-                components=(hikari.api.CacheComponents.GUILDS
-                            | hikari.api.CacheComponents.GUILD_CHANNELS
-                            | hikari.api.CacheComponents.MEMBERS
-                            | hikari.api.CacheComponents.ROLES
-                            | hikari.api.CacheComponents.INVITES
-                            | hikari.api.CacheComponents.VOICE_STATES
-                            | hikari.api.CacheComponents.MESSAGES),
+                components=hikari.api.CacheComponents.ALL,
                 max_messages=1000,
             ),
 
@@ -104,29 +98,25 @@ class Airy(lightbulb.BotApp, ABC):
     def create_subscriptions(self):
         self.subscribe(hikari.StartingEvent, self.on_starting)
         self.subscribe(hikari.StartedEvent, self.on_started)
-        self.subscribe(hikari.GuildAvailableEvent, self.on_guild_available)
-        self.subscribe(lightbulb.LightbulbStartedEvent, self.on_lightbulb_started)
-        self.subscribe(hikari.MessageCreateEvent, self.on_message)
         self.subscribe(hikari.StoppingEvent, self.on_stopping)
         self.subscribe(hikari.StoppedEvent, self.on_stop)
+        self.subscribe(lightbulb.LightbulbStartedEvent, self.on_lightbulb_started)
+        self.subscribe(hikari.GuildAvailableEvent, self.on_guild_available)
         self.subscribe(hikari.GuildJoinEvent, self.on_guild_join)
         self.subscribe(hikari.GuildLeaveEvent, self.on_guild_leave)
+        self.subscribe(hikari.MessageCreateEvent, self.on_message)
 
     async def connect_db(self) -> None:
         logger.info("Connecting to Database...")
         await self.db.connect()
         logger.info("Connected to Database.")
 
-    # Extensions
+    ##############
+    # EXTENSIONS #
+    ##############
 
-    def load_extensions_from(
-            self, *paths: t.Union[str, pathlib.Path], recursive: bool = False, must_exist: bool = True
-    ) -> None:
-        if len(paths) > 1 or not paths:
-            for path_ in paths:
-                self.load_extensions_from(path_, recursive=recursive, must_exist=must_exist)
-            return
-
+    @staticmethod
+    def check_path(*paths: t.Union[str, pathlib.Path]):
         path = paths[0]
 
         if isinstance(path, str):
@@ -138,9 +128,19 @@ class Airy(lightbulb.BotApp, ABC):
             raise ValueError(f"'{path}' must be relative to the working directory") from None
 
         if not path.is_dir():
-            if must_exist:
-                raise FileNotFoundError(f"'{path}' is not an existing directory")
+            raise FileNotFoundError(f"'{path}' is not an existing directory")
+
+        return path
+
+    def load_extensions_from(
+            self, *paths: t.Union[str, pathlib.Path], recursive: bool = False, must_exist: bool = True
+    ) -> None:
+        if len(paths) > 1 or not paths:
+            for path_ in paths:
+                self.load_extensions_from(path_, recursive=recursive, must_exist=must_exist)
             return
+
+        path = self.check_path(*paths)
 
         for ext_path in path.iterdir():
             if ext_path.is_dir():
@@ -154,7 +154,9 @@ class Airy(lightbulb.BotApp, ABC):
 
         logger.info("Extensions loaded")
 
-    # Services
+    ############
+    # SERVICES #
+    ############
 
     def load_service(self, *extensions: str) -> None:
         """
@@ -283,20 +285,7 @@ class Airy(lightbulb.BotApp, ABC):
                 self.load_services_from(path_, recursive=recursive, must_exist=must_exist)
             return
 
-        path = paths[0]
-
-        if isinstance(path, str):
-            path = pathlib.Path(path)
-
-        try:
-            path = path.resolve().relative_to(pathlib.Path.cwd())
-        except ValueError:
-            raise ValueError(f"'{path}' must be relative to the working directory") from None
-
-        if not path.is_dir():
-            if must_exist:
-                raise FileNotFoundError(f"'{path}' is not an existing directory")
-            return
+        path = self.check_path(*paths)
 
         glob = path.rglob if recursive else path.glob
         for ext_path in glob("[!_]*.py"):
@@ -304,9 +293,10 @@ class Airy(lightbulb.BotApp, ABC):
             self.load_service(ext)
 
         logger.info("Services started")
-        logger.warning(self.services)
 
-    # command handler (custom)
+    ###########################
+    # COMMAND HANDLER (CUSTOM #
+    ###########################
 
     async def get_slash_context(
             self,
@@ -337,7 +327,9 @@ class Airy(lightbulb.BotApp, ABC):
     ) -> t.Optional[AiryPrefixContext]:
         return await super().get_prefix_context(event, cls)  # type: ignore
 
-    # events
+    ##########
+    # EVENTS #
+    ##########
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         # loop.create_task(self.http_server.start())

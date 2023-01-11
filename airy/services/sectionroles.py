@@ -1,11 +1,13 @@
-import asyncio
 import typing
+
 from enum import IntEnum
 
 import hikari
+
 from loguru import logger
 
 from airy.models import HierarchyRoles, DatabaseSectionRole
+from airy.services import BaseService
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -32,12 +34,20 @@ class ChangedRole:
                 self.status = None
 
 
-class SectionRolesService:
-    bot: "Airy" = None
+class SectionRolesService(BaseService):
+    @classmethod
+    async def on_startup(cls, event: hikari.StartedEvent):
+        cls.bot.subscribe(hikari.MemberUpdateEvent, cls.on_member_update)
+        cls.bot.subscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
+
+    @classmethod
+    async def on_shutdown(cls, event: hikari.StoppedEvent = None):
+        cls.bot.unsubscribe(hikari.MemberUpdateEvent, cls.on_member_update)
+        cls.bot.unsubscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
 
     @classmethod
     async def on_role_delete(cls, event: hikari.RoleDeleteEvent):
-        models = await DatabaseSectionRole.fetch_all(event.guild_id)
+        models: list[DatabaseSectionRole] = await DatabaseSectionRole.fetch_all(event.guild_id)
 
         for model in models:
             if model.role_id == event.role_id:
@@ -56,7 +66,7 @@ class SectionRolesService:
         if changed_role.id is None:
             return
 
-        role_models = await DatabaseSectionRole.fetch_all(event.guild_id)
+        role_models: list[DatabaseSectionRole] = await DatabaseSectionRole.fetch_all(event.guild_id)
 
         for role_model in role_models:
             entries = {entry.entry_id for entry in role_model.entries}
@@ -117,9 +127,9 @@ class SectionRolesService:
 
     @classmethod
     async def get(cls,
-                  guild_id: int,
-                  role_id: int) -> typing.Optional[DatabaseSectionRole]:
-        model = await DatabaseSectionRole.fetch(guild_id, role_id)
+                  guild_id: hikari.Snowflake,
+                  role_id: hikari.Snowflake) -> typing.Optional[DatabaseSectionRole]:
+        model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
         if not model:
             return None
         logger.info(f"SectionRole get (id: {model.role_id} entries: {len(model.entries)}) in guild {model.guild_id}")
@@ -128,47 +138,34 @@ class SectionRolesService:
 
     @classmethod
     async def create(cls,
-                     guild_id: int,
-                     role_id: int,
-                     entries_id: list[int],
+                     guild_id: hikari.Snowflake,
+                     role_id: hikari.Snowflake,
+                     entries_id: list[hikari.Snowflake],
                      hierarchy: HierarchyRoles
                      ) -> typing.Optional[DatabaseSectionRole]:
-        """
-
-        :param guild_id:
-        :param role_id:
-        :param entries_id:
-        :param hierarchy:
-        :return:
-        """
-        model = await DatabaseSectionRole.fetch(guild_id, role_id)
+        model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
 
         if model:
             return None
 
-        model = await DatabaseSectionRole.create(guild=guild_id, role=role_id, hierarchy=hierarchy, entries=entries_id)
-        logger.info(f"SectionRole created (id: {model.role_id} entries: {len(model.entries)}) in guild {model.guild_id}")
+        model = await DatabaseSectionRole.create(guild_id, role_id, hierarchy, entries_id)
+        logger.info("SectionRole created (id: {} entries: {}) in guild {}",
+                    model.role_id,
+                    len(model.entries),
+                    model.guild_id
+                    )
 
         return model
 
     @classmethod
     async def update(cls,
-                     guild_id: int,
-                     role_id: int,
-                     entries_id: list[int] = None,
+                     guild_id: hikari.Snowflake,
+                     role_id: hikari.Snowflake,
+                     entries_id: list[hikari.Snowflake] = None,
                      hierarchy: HierarchyRoles = None,
-                     delete_roles: bool = False
                      ) -> typing.Optional[DatabaseSectionRole]:
-        """
 
-        :param guild_id:
-        :param role_id:
-        :param entries_id:
-        :param hierarchy:
-        :param delete_roles:
-        :return:
-        """
-        model = await DatabaseSectionRole.fetch(guild=guild_id, role=role_id)
+        model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
 
         if not model:
             return None
@@ -180,66 +177,40 @@ class SectionRolesService:
         if entries_id:
             need_add = set(entries_id) - set([e.entry_id for e in model.entries])
             need_remove = set(entries_id) - need_add
-            if delete_roles:
-                async with asyncio.TaskGroup() as tg:
-                    for entry_id in need_remove:
-                        tg.create_task(cls.bot.rest.delete_role(guild_id, entry_id))
 
             await model.remove_entries(list(need_remove))
             await model.add_entries(list(need_add))
-        logger.info(f"SectionRole updated (id: {model.role_id} entries: {len(model.entries)}) in guild {model.guild_id}")
+        logger.info("SectionRole updated (id: {} entries: {}) in guild {}",
+                    model.role_id,
+                    len(model.entries),
+                    model.guild_id
+                    )
 
         return model
 
     @classmethod
     async def delete(cls,
-                     guild_id: int,
-                     role_id: int,
-                     delete_roles: bool = False
+                     guild_id: hikari.Snowflake,
+                     role_id: hikari.Snowflake,
                      ) -> typing.Optional[DatabaseSectionRole]:
-        """
 
-        :param guild_id:
-        :param role_id:
-        :param delete_roles:
-        :return:
-        """
-        model = await DatabaseSectionRole.fetch(guild=guild_id, role=role_id)
+        model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
 
         if not model:
             return None
         await model.delete()
 
-        if delete_roles:
-            async with asyncio.TaskGroup() as tg:
-                tg.create_task(cls.bot.rest.delete_role(guild_id, model.role_id))
-                for entry in model.entries:
-                    tg.create_task(cls.bot.rest.delete_role(guild_id, entry.entry_id))
-
-        logger.info(f"SectionRole deleted (id: {model.role_id} entries: {len(model.entries)}) in guild {model.guild_id}")
+        logger.info("SectionRole deleted (id: {} entries: {}) in guild {}",
+                    model.role_id,
+                    len(model.entries),
+                    model.guild_id
+                    )
         return model
-
-    @classmethod
-    def on_startup(cls, bot: "Airy"):
-        cls.bot = bot
-        bot.subscribe(hikari.MemberUpdateEvent, cls.on_member_update)
-        bot.subscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
-
-        logger.info(f"Service {cls.__name__} started")
-
-    @classmethod
-    def on_shutdown(cls, bot: "Airy"):
-        bot.unsubscribe(hikari.MemberUpdateEvent, cls.on_member_update)
-        bot.unsubscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
-
-    @classmethod
-    def setup(cls, bot: "Airy"):
-        cls.on_startup(bot)
 
 
 def load(bot: "Airy"):
-    SectionRolesService.setup(bot)
+    SectionRolesService.start(bot)
 
 
 def unload(bot: "Airy"):
-    SectionRolesService.on_shutdown(bot)
+    SectionRolesService.shutdown(bot)

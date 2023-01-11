@@ -1,6 +1,6 @@
 import typing as t
 
-from pydantic import BaseSettings, UUID4, IPvAnyAddress, IPvAnyInterface, FilePath
+from pydantic import BaseSettings, UUID4, IPvAnyAddress, FilePath
 
 
 class ApiConfig(BaseSettings):

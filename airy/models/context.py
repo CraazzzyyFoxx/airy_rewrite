@@ -6,7 +6,7 @@ import hikari
 import lightbulb
 import miru
 
-from airy.static import RespondEmojiEnum
+from airy.etc import RespondEmojiEnum
 from .views import AuthorOnlyView
 
 __all__ = ("AiryContext",
@@ -69,7 +69,7 @@ class AiryContext(lightbulb.Context):
             Optional keyword-only payload to send if the user confirmed, by default None
         cancel_payload : Optional[Dict[str, Any]], optional
             Optional keyword-only payload to send if the user cancelled, by default None
-        timeout: Optional[int], optional
+        timeout : Optional[int], optional
             Optional parameter after how many seconds to delete, by default 120
         edit : bool
             If True, tries editing the initial response or the provided message.
@@ -101,7 +101,7 @@ class AiryContext(lightbulb.Context):
             message = await resp.message()
 
         assert message is not None
-        view.start(message)
+        await view.start(message)
         await view.wait()
         return view.value
 

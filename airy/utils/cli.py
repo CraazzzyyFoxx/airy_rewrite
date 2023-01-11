@@ -48,7 +48,11 @@ class Migrations:
         self.filename: str = filename
         self.root: Path = Path(filename).parent
         self.revisions: dict[int, Revision] = self.get_revisions()
-        self.load()
+
+        self.ensure_path()
+        data = self.load_metadata()
+        self.version: int = data['version']
+        self.database_uri: str = data['database_uri']
 
     def ensure_path(self) -> None:
         self.root.mkdir(exist_ok=True)
@@ -78,12 +82,6 @@ class Migrations:
             'version': self.version,
             'database_uri': self.database_uri,
         }
-
-    def load(self) -> None:
-        self.ensure_path()
-        data = self.load_metadata()
-        self.version: int = data['version']
-        self.database_uri: str = data['database_uri']
 
     def save(self):
         temp = f'{self.filename}.{uuid.uuid4()}.tmp'

@@ -3,40 +3,37 @@ import typing
 
 import hikari
 import lightbulb
+
 from loguru import logger
 
 from airy.models.bot import Airy
 from airy.models import DatabaseAutoRole, DatabaseGuild
+from airy.services import BaseService
 from airy.utils import helpers
 
 
-class AutoRolesService:
-    bot: typing.Optional[Airy] = None
-    _is_started: bool = False
-
+class AutoRolesService(BaseService):
     @classmethod
-    def start(cls, bot: "Airy") -> None:
-        """
-        Start the AutoRolesService.
-        """
-        cls.bot = bot
+    async def on_startup(cls, event: hikari.StartedEvent):
         cls.bot.subscribe(hikari.MemberCreateEvent, cls.on_member_join)
-        cls._is_started = True
-        logger.info("AutoRolesService startup complete.")
+        cls.bot.subscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
 
     @classmethod
-    def stop(cls) -> None:
-        """
-        Stop the AutoRolesService.
-        """
-        cls._is_started = False
-        logger.info("AutoRolesService shutdown complete.")
+    async def on_shutdown(cls, event: hikari.StoppedEvent = None):
+        cls.bot.unsubscribe(hikari.MemberCreateEvent, cls.on_member_join)
+        cls.bot.unsubscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
+
+    @classmethod
+    async def on_role_delete(cls, event: hikari.RoleDeleteEvent):
+        await DatabaseAutoRole.db.execute("""delete from autorole where guild_id=$1 and role_id=$2""",
+                                          event.guild_id, event.role_id)
 
     @classmethod
     async def on_member_join(cls, event: hikari.MemberCreateEvent):
-        # TODO: Добавить проверку, что бот выше пользователя
         me = cls.bot.cache.get_member(event.guild_id, cls.bot.user_id)
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
+            return
+        if not helpers.is_above(me, event.member):
             return
         models = await cls.get_all_for_guild(event.guild_id)
 
@@ -50,26 +47,10 @@ class AutoRolesService:
                                                                model.role_id,
                                                                reason=f"AutoRole for the joined member")
                                )
-
-        # guild_model = await DatabaseGuild.fetch(event.guild_id)
-        #
-        # if guild_model and not guild_model.re_assigns_roles:
-        #     return
-        #
-        # records = await DatabaseAutoRoleForMember.db.fetch("""select role_id from autorole_for_member
-        #                                                     where guild_id=$1 and user_id=$2""",
-        #                                                    event.guild_id,
-        #                                                    event.user_id)
-        #
-        # if not records:
-        #     return
-        #
-        # async with asyncio.TaskGroup() as tg:
-        #     for record in records:
-        #         await cls.bot.rest.add_role_to_member(event.guild_id,
-        #                                               event.user_id,
-        #                                               record.get("role_id"),
-        #                                               reason=f"AutoRole re-assigns for the joined member")
+                logger.info("Added AutoRole {} to member {} in guild {}",
+                            model.role_id,
+                            event.user_id,
+                            model.role_id)
 
     @classmethod
     async def on_member_leave(cls, event: hikari.MemberDeleteEvent):
@@ -87,19 +68,7 @@ class AutoRolesService:
         guild_id = hikari.Snowflake(guild)
         role_id = hikari.Snowflake(role)
 
-        record = await DatabaseAutoRole.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
-                                                    guild_id,
-                                                    role_id)
-        if record:
-            raise ValueError("This role already exists. ")
-
-        id = await DatabaseAutoRole.db.fetchval("""insert into autorole (guild_id, role_id) VALUES ($1, $2) 
-                                                    returning id""",
-                                                guild_id,
-                                                role_id,
-                                                )
-
-        return DatabaseAutoRole(id=id, guild_id=guild_id, role_id=role_id)
+        return await DatabaseAutoRole.create(guild_id, role_id)
 
     @classmethod
     async def delete(
@@ -113,16 +82,7 @@ class AutoRolesService:
         guild_id = hikari.Snowflake(guild)
         role_id = hikari.Snowflake(role)
 
-        record = await DatabaseAutoRole.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
-                                                    guild_id,
-                                                    role_id)
-        if record:
-            raise ValueError("The role does not exist ")
-
-        await DatabaseAutoRole.db.execute("""delete from autorole where guild_id=$1 and role_id=$2""",
-                                          guild_id,
-                                          role_id,
-                                          )
+        await DatabaseAutoRole.delete(guild_id, role_id)
 
     @classmethod
     async def get(
@@ -136,16 +96,7 @@ class AutoRolesService:
         guild_id = hikari.Snowflake(guild)
         role_id = hikari.Snowflake(role)
 
-        record = await DatabaseAutoRole.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
-                                                    guild_id,
-                                                    role_id)
-        if not record:
-            return None
-
-        return DatabaseAutoRole(id=record.get("id"),
-                                guild_id=hikari.Snowflake(record.get("guild_id")),
-                                role_id=hikari.Snowflake(record.get("role_id"))
-                                )
+        return await DatabaseAutoRole.fetch(guild_id, role_id)
 
     @classmethod
     async def get_all_for_guild(
@@ -157,16 +108,7 @@ class AutoRolesService:
 
         guild_id = hikari.Snowflake(guild)
 
-        records = await DatabaseAutoRole.db.fetch("""select * from autorole where guild_id=$1""",
-                                                  guild_id)
-
-        if not records:
-            return []
-
-        return [DatabaseAutoRole(id=record.get("id"),
-                                 guild_id=hikari.Snowflake(record.get("guild_id")),
-                                 role_id=hikari.Snowflake(record.get("role_id")))
-                for record in records]
+        return await DatabaseAutoRole.fetch_all(guild_id)
 
     @classmethod
     async def update_re_assigns_roles(
@@ -185,5 +127,5 @@ def load(bot: "Airy"):
     AutoRolesService.start(bot)
 
 
-def unload(_: "Airy"):
-    AutoRolesService.stop()
+def unload(bot: "Airy"):
+    AutoRolesService.shutdown(bot)

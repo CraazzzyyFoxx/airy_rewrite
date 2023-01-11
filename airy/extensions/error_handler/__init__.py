@@ -12,7 +12,7 @@ from loguru import logger
 
 from airy.config import bot_config
 from airy.models import *
-from airy.static.perms_str import get_perm_str
+from airy.etc.perms_str import get_perm_str
 from airy.utils import helpers, RespondEmbed, utcnow
 
 if typing.TYPE_CHECKING:

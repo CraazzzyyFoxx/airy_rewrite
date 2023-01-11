@@ -7,7 +7,7 @@ import lightbulb
 import miru
 
 from airy.models import AirySlashContext
-from airy.static import ColorEnum
+from airy.etc import ColorEnum
 from airy.utils import helpers, RespondEmbed
 
 fun = lightbulb.Plugin("Fun")
@@ -327,7 +327,7 @@ async def tictactoe(ctx: AirySlashContext, user: hikari.Member, size: t.Optional
 # @lightbulb.command("8ball", "Ask a question, and the answers shall reveal themselves.", pass_options=True)
 # @lightbulb.implements(lightbulb.SlashCommand)
 # async def eightball(ctx: AirySlashContext, question: str) -> None:
-#     ball_path = Path(airy.ROOT_DIR, "static", "text", "8ball.txt")
+#     ball_path = Path(airy.ROOT_DIR, "etc", "text", "8ball.txt")
 #     answers = open(ball_path, "r").readlines()
 #     embed = hikari.Embed(
 #         title=f"🎱 {question}",

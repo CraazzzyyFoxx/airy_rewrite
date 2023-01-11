@@ -7,7 +7,7 @@ import lightbulb
 
 from airy.models.bot import Airy
 from airy.models import AirySlashContext
-from airy.static import ColorEnum
+from airy.etc import ColorEnum
 
 
 help = lightbulb.Plugin("Help")

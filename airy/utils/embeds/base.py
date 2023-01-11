@@ -2,7 +2,7 @@ import typing
 
 import hikari
 
-from airy.static import RespondIconsEnum, ColorEnum
+from airy.etc import RespondIconsEnum, ColorEnum
 from airy.utils.time import utcnow
 
 

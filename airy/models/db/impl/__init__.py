@@ -12,7 +12,6 @@ from airy.models.errors import DatabaseStateConflictError
 
 if t.TYPE_CHECKING:
     from airy.models.bot import Airy
-    from airy.utils.cache import DatabaseCache
 
 
 class Database:
@@ -250,6 +249,5 @@ class DatabaseModel(abc.ABC):
 
     db: Database
     app: Airy
-    db_cache: DatabaseCache
 
 

@@ -15,6 +15,21 @@ from airy.models import AirySlashContext
 from .matchers import URL_MATCHER, INVITE_MATCHER, MESSAGE_LINK_MATCHER
 from .embeds import RespondEmbed
 
+__all__ = ("add_embed_footer",
+           "get_color",
+           "sort_roles",
+           "includes_permissions",
+           "is_above",
+           "is_member",
+           "is_url",
+           "is_invite",
+           "parse_color",
+           "parse_role",
+           "parse_message_link",
+           "maybe_delete",
+           "maybe_edit",
+           "format_reason")
+
 
 def add_embed_footer(embed: hikari.Embed, invoker: hikari.Member) -> hikari.Embed:
     """
@@ -41,76 +56,6 @@ def sort_roles(roles: t.Sequence[hikari.Role]) -> t.Sequence[hikari.Role]:
     return sorted(roles, key=lambda r: r.position, reverse=True)
 
 
-# async def get_userinfo(ctx: AirySlashContext, user: hikari.User) -> hikari.Embed:
-#
-#     if not ctx.guild_id:
-#         raise RuntimeError("Cannot use get_userinfo outside of a guild.")
-#
-#     db_user: User = await ctx.app.global_config.get_user(user.id, ctx.guild_id)
-#
-#     member = ctx.app.cache.get_member(ctx.guild_id, user)
-#
-#     if member:
-#         roles = [role.mention for role in sort_roles(member.get_roles())]
-#         roles.remove(f"<@&{ctx.guild_id}>")
-#         roles = ", ".join(roles) if roles else "`-`"
-#         comms_disabled_until = member.communication_disabled_until()
-#
-#         embed = hikari.Embed(
-#             title=f"**User information:** {member.display_name}",
-#             description=f"""**• Username:** `{member}`
-# **• Nickname:** `{member.nickname or "-"}`
-# **• User ID:** `{member.id}`
-# **• Bot:** `{member.is_bot}`
-# **• Account creation date:** {format_dt(member.created_at)} ({format_dt(member.created_at, style='R')})
-# **• Join date:** {format_dt(member.joined_at)} ({format_dt(member.joined_at, style='R')})
-# **• Badges:** {"   ".join(get_badges(member)) or "`-`"}
-# **• Warns:** `{db_user.warns}`
-# **• Timed out:** {f"Until: {format_dt(comms_disabled_until)}" if comms_disabled_until is not None else "`-`"}
-# **• Flags:** `{",".join(list(db_user.flags.keys())) if db_user.flags and len(db_user.flags) > 0 else "-"}`
-# **• Journal:** `{f"{len(db_user.notes)} entries" if db_user.notes else "No entries"}`
-# **• Roles:** {roles}""",
-#             color=get_color(member),
-#         )
-#         user = await ctx.app.rest.fetch_user(user.id)
-#         embed.set_thumbnail(member.display_avatar_url)
-#         if user.banner_url:
-#             embed.set_image(user.banner_url)
-#
-#     else:
-#         embed = hikari.Embed(
-#             title=f"**User information:** {user.username}",
-#             description=f"""**• Username:** `{user}`
-# **• Nickname:** `-`
-# **• User ID:** `{user.id}`
-# **• Bot:** `{user.is_bot}`
-# **• Account creation date:** {format_dt(user.created_at)} ({format_dt(user.created_at, style='R')})
-# **• Join date:** `-`
-# **• Badges:** {"   ".join(get_badges(user)) or "`-`"}
-# **• Warns:** `{db_user.warns}`
-# **• Timed out:** `-`
-# **• Flags:** `{",".join(list(db_user.flags.keys())) if db_user.flags and len(db_user.flags) > 0 else "-"}`
-# **• Journal:** `{f"{len(db_user.notes)} entries" if db_user.notes else "No entries"}`
-# **• Roles:** `-`
-# *Note: This user is not a member of this server*""",
-#             color=const.EMBED_BLUE,
-#         )
-#         embed.set_thumbnail(user.display_avatar_url)
-#         user = await ctx.app.rest.fetch_user(user.id)
-#         if user.banner_url:
-#             embed.set_image(user.banner_url)
-#
-#     assert ctx.member is not None
-#
-#     if ctx.member.id in ctx.app.owner_ids:
-#         records = await ctx.app.db_cache.get(table="blacklist", guild_id=0, user_id=user.id, limit=1)
-#         is_blacklisted = True if records and records[0]["user_id"] == user.id else False
-#         embed.description = f"{embed.description}\n**• Blacklisted:** `{is_blacklisted}`"
-#
-#     embed = add_embed_footer(embed, ctx.member)
-#     return embed
-
-
 def includes_permissions(permissions: hikari.Permissions, should_include: hikari.Permissions) -> bool:
     """Check if permissions includes should_includes."""
 
@@ -123,37 +68,9 @@ def includes_permissions(permissions: hikari.Permissions, should_include: hikari
     return True
 
 
-def len_embed(embed: hikari.Embed) -> int:
-    """Return the total length of an embed object.
-
-    Parameters
-    ----------
-    embed : hikari.Embed
-        The embed to get the length of.
-
-    Returns
-    -------
-    int
-        The length of the embed.
-    """
-
-    if not isinstance(embed, hikari.Embed):
-        return 0
-
-    text = [embed.title or "", embed.description or ""]
-    if embed.footer:
-        text.append(embed.footer.text or "")
-    if embed.author:
-        text.append(embed.author.name or "")
-
-    text += [f"{field.name}{field.value}" for field in embed.fields]
-
-    return len("".join(text))
-
-
 def is_above(me: hikari.Member, member: hikari.Member) -> bool:
     """
-    Returns True if me's top role's position is higher than the specified member's.
+    Returns True if me top role's position is higher than the specified member's.
     """
     me_top_role = me.get_top_role()
     member_top_role = member.get_top_role()
@@ -199,7 +116,7 @@ def can_harm(
 
 def is_url(string: str, *, fullmatch: bool = True) -> bool:
     """
-    Returns True if the provided string is an URL, otherwise False.
+    Returns True if the provided string is a URL, otherwise False.
     """
 
     if fullmatch and URL_MATCHER.fullmatch(string):
@@ -316,7 +233,7 @@ def parse_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
     if isinstance(value, int) and (0 <= value <= 16777215):
         return hikari.Color.from_int(value)
 
-    if len(value) == 3 and len([x for x in value if str(x).isdigit() and 255 >= int(x) >= 0]) == len(value):
+    elif len(value) == 3 and len([x for x in value if str(x).isdigit() and 255 >= int(x) >= 0]) == len(value):
         color = [int(x) for x in value]
         return hikari.Color.from_int(color[0] << 16 | color[1] << 8 | color[2] << 0)
 
@@ -331,7 +248,10 @@ def parse_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
             return None
 
 
-async def parse_role(ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext], value: t.Union[int, str]):
+async def parse_role(
+        ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext],
+        value: t.Union[int, str]
+        ) -> hikari.Role | None:
     """Checks that provided value is role by id and name"""
     roles = ctx.bot.cache.get_roles_view_for_guild(ctx.guild_id)
     if value.isdigit():

@@ -3,78 +3,66 @@ import typing
 import hikari
 import lightbulb
 
-from asyncpg import Record
 from loguru import logger
 
 from airy.models import DatabaseReactionRole
+from airy.services import BaseService
 from airy.utils import helpers
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
 
 
-class ReactionRoleService:
-    bot: typing.Optional["Airy"] = None
-    _is_started: bool = False
-
+class ReactionRoleService(BaseService):
     @classmethod
-    def start(cls, bot: "Airy") -> None:
-        """
-        Start the ReactionRoleService.
-        """
-        cls.bot = bot
+    async def on_startup(cls, event: hikari.StartedEvent):
         cls.bot.subscribe(hikari.MessageDeleteEvent, cls.on_delete_message)
         cls.bot.subscribe(hikari.ReactionAddEvent, cls._on_reaction_add)
         cls.bot.subscribe(hikari.ReactionDeleteEvent, cls._on_reaction_remove)
-        cls._is_started = True
-        logger.info("ReactionRoleService startup complete.")
 
     @classmethod
-    def stop(cls) -> None:
-        """
-        Stop the ReactionRoleService.
-        """
-        cls._is_started = False
-        logger.info("ReactionRoleService shutdown complete.")
+    async def on_shutdown(cls, event: hikari.StoppedEvent = None):
+        cls.bot.unsubscribe(hikari.MessageDeleteEvent, cls.on_delete_message)
+        cls.bot.unsubscribe(hikari.ReactionAddEvent, cls._on_reaction_add)
+        cls.bot.unsubscribe(hikari.ReactionDeleteEvent, cls._on_reaction_remove)
 
     @classmethod
     def _parse(cls, *args) -> list[hikari.Snowflake]:
         return [hikari.Snowflake(arg) for arg in args]
 
     @classmethod
-    def _parse_record(cls, record: Record) -> DatabaseReactionRole:
-        return DatabaseReactionRole(id=record.get("id"),
-                                    guild_id=hikari.Snowflake(record.get("guild_id")),
-                                    channel_id=hikari.Snowflake(record.get("channel_id")),
-                                    message_id=hikari.Snowflake(record.get("message_id")),
-                                    role_id=hikari.Snowflake(record.get("role_id")),
-                                    emoji=hikari.Emoji.parse(record.get("emoji"))
-                                    )
+    async def on_delete_message(cls, event: hikari.MessageDeleteEvent):
+        await DatabaseReactionRole.delete_all(event.channel_id, event.message_id)
 
     @classmethod
-    async def on_delete_message(cls, event: hikari.MessageDeleteEvent):
-        await DatabaseReactionRole.db.execute("""delete from reactionrole 
-                                                where channel_id=$1 and message_id=$2""",
-                                              event.channel_id,
-                                              event.message_id)
+    async def on_delete_role(cls, event: hikari.RoleDeleteEvent):
+        await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
 
     @classmethod
     async def _process(cls, event: hikari.ReactionAddEvent | hikari.ReactionDeleteEvent):
-        record = await DatabaseReactionRole.db.fetchrow("""select guild_id, role_id from reactionrole 
-                                                                   where channel_id=$1 and message_id=$2 and emoji=$3""",
-                                                        event.channel_id,
-                                                        event.message_id,
-                                                        event.emoji_name)
-        if not record:
-            return None
+        me = cls.bot.cache.get_member(event.guild_id, cls.bot.user_id)
 
-        guild_id, role_id = cls._parse(record.get("guild_id"), record.get("role_id"))
+        if not me:
+            return
 
-        me = cls.bot.cache.get_member(guild_id, cls.bot.user_id)
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
             return None
+        if not helpers.is_above(me, cls.bot.cache.get_member(event.guild_id, event.user_id)):
+            return
 
-        return guild_id, role_id, event.user_id
+        if event.emoji_id:
+            emoji = hikari.Emoji.parse(f"<:{event.emoji_name}:{event.emoji_id}>")
+        else:
+            emoji = hikari.Emoji.parse(event.emoji_name)
+
+        try:
+            model: DatabaseReactionRole = await DatabaseReactionRole.fetch_by_emoji(event.channel_id,
+                                                                                    event.message_id,
+                                                                                    emoji)
+        except ValueError:
+            return None
+
+        return model.guild_id, model.role_id, event.user_id
 
     @classmethod
     async def _on_reaction_add(cls, event: hikari.ReactionAddEvent):
@@ -118,37 +106,12 @@ class ReactionRoleService:
         if not msg:
             raise ValueError("Message not found")
 
-        record = await DatabaseReactionRole.db.fetchrow("""select id from reactionrole where 
-                                                    guild_id=$1 and channel_id=$2 and message_id=$3 and role_id=$4""",
-                                                        guild_id,
-                                                        channel_id,
-                                                        message_id,
-                                                        role_id)
-
-        if record:
-            return None
-
-        id = await DatabaseReactionRole.db.fetchval("""insert into reactionrole 
-                                                    (guild_id, channel_id, message_id, role_id, emoji) 
-                                                    VALUES ($1, $2, $3, $4, $5)""",
-                                                    guild_id,
-                                                    channel_id,
-                                                    message_id,
-                                                    role_id,
-                                                    emoji.mention
-                                                    )
-
+        model = await DatabaseReactionRole.create(guild_id, channel_id, message_id, role_id, emoji)
         await msg.add_reaction(emoji)
 
         logger.info("Create Reaction role {} in guild {}", role_id, guild_id)
 
-        return DatabaseReactionRole(id=id,
-                                    guild_id=guild_id,
-                                    channel_id=channel_id,
-                                    message_id=message_id,
-                                    role_id=role_id,
-                                    emoji=emoji
-                                    )
+        return model
 
     @classmethod
     async def edit(cls,
@@ -164,36 +127,8 @@ class ReactionRoleService:
         if not msg:
             raise ValueError("Message not found")
 
-        record = await DatabaseReactionRole.db.fetchrow("""select id from reactionrole where 
-                                                            guild_id=$1 and channel_id=$2 
-                                                            and message_id=$3 and role_id=$4""",
-                                                        guild_id,
-                                                        channel_id,
-                                                        message_id,
-                                                        role_id)
-
-        if record:
-            return None
-
-        await DatabaseReactionRole.db.execute("""insert into reactionrole 
-                                                            (guild_id, channel_id, message_id, role_id, emoji) 
-                                                            VALUES ($1, $2, $3, $4, $5) 
-                                                            ON CONFLICT (guild_id, channel_id, message_id, role_id) 
-                                                            DO UPDATE SET emoji=$6""",
-                                              guild_id,
-                                              channel_id,
-                                              message_id,
-                                              role_id,
-                                              emoji.mention
-                                              )
-
-        return DatabaseReactionRole(id=record.get("id"),
-                                    guild_id=guild_id,
-                                    channel_id=channel_id,
-                                    message_id=message_id,
-                                    role_id=role_id,
-                                    emoji=emoji
-                                    )
+        model = await DatabaseReactionRole.edit(channel, message, role, emoji)
+        return model
 
     @classmethod
     async def delete(cls,
@@ -208,27 +143,8 @@ class ReactionRoleService:
         if not msg:
             raise ValueError("Message not found")
 
-        record = await DatabaseReactionRole.db.fetchrow("""select * from reactionrole where 
-                                                        guild_id=$1 and channel_id=$2 
-                                                        and message_id=$3 and role_id=$4""",
-                                                        guild_id,
-                                                        channel_id,
-                                                        message_id,
-                                                        role_id)
-
-        if not record:
-            raise ValueError("The role does not exist ")
-
-        model = cls._parse_record(record)
+        model = await DatabaseReactionRole.delete(channel_id, message_id, role_id)
         await msg.remove_reaction(model.emoji)
-
-        await DatabaseReactionRole.db.execute("""delete from reactionrole where 
-                                                        guild_id=$1 and channel_id=$2 
-                                                        and message_id=$3 and role_id=$4""",
-                                              guild_id,
-                                              channel_id,
-                                              message_id,
-                                              role_id)
 
         logger.info("Remove Reaction role {} in guild {}", role_id, guild_id)
         return model
@@ -242,18 +158,7 @@ class ReactionRoleService:
                   ) -> typing.Optional[DatabaseReactionRole]:
         guild_id, channel_id, message_id, role_id = cls._parse(guild, channel, message, role)
 
-        record = await DatabaseReactionRole.db.fetchrow("""select id from reactionrole where 
-                                                                    guild_id=$1 and channel_id=$2 
-                                                                    and message_id=$3 and role_id=$4""",
-                                                        guild_id,
-                                                        channel_id,
-                                                        message_id,
-                                                        role_id)
-
-        if not record:
-            return None
-
-        return cls._parse_record(record)
+        return await DatabaseReactionRole.fetch(guild_id, channel_id, message_id, role_id)
 
     @classmethod
     async def get_all(cls,
@@ -263,23 +168,12 @@ class ReactionRoleService:
                       ) -> typing.List[DatabaseReactionRole]:
         guild_id, channel_id, message_id = cls._parse(guild, channel, message)
 
-        records = await DatabaseReactionRole.db.fetch("""select * from reactionrole where 
-                                                             guild_id=$1 and channel_id=$2 
-                                                             and message_id=$3""",
-                                                      guild_id,
-                                                      channel_id,
-                                                      message_id,
-                                                      )
-
-        if not records:
-            return []
-
-        return [cls._parse_record(record) for record in records]
+        return await DatabaseReactionRole.fetch_all(guild_id, channel_id, message_id)
 
 
 def load(bot: "Airy"):
     ReactionRoleService.start(bot)
 
 
-def unload(_: "Airy"):
-    ReactionRoleService.stop()
+def unload(bot: "Airy"):
+    ReactionRoleService.shutdown(bot)

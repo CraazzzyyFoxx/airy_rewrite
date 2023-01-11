@@ -14,7 +14,7 @@ from loguru import logger
 from airy.models import AirySlashContext, AiryPlugin, DatabaseTimer, ReminderEvent, TimerEnum, AuthorOnlyNavigator
 from airy.models.bot import Airy
 from airy.services.scheduler import SchedulerService
-from airy.static import ColorEnum
+from airy.etc import ColorEnum
 from airy.utils import RespondEmbed, formats, utcnow
 
 

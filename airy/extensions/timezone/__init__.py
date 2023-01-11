@@ -1,25 +1,28 @@
 import asyncio
 import datetime
-import logging
-import typing as t
+import typing
 
 import hikari
 import lightbulb
 import miru
 import pytz
+
 from fuzzywuzzy import process
 
 from airy.models import AirySlashContext, DatabaseUser
-from airy.static import ColorEnum
+from airy.etc import ColorEnum
 from airy.utils import SimplePages, RespondEmbed, format_dt
 
-logger = logging.getLogger(__name__)
+
+if typing.TYPE_CHECKING:
+    from airy.models.bot import Airy
+
 
 timezone = lightbulb.Plugin("Timezone")
 
 
 class TimezoneSelect(miru.Select):
-    def __init__(self, options: t.Sequence[t.Tuple[str, int]]):
+    def __init__(self, options: typing.Sequence[typing.Tuple[str, int]]):
         options = [miru.SelectOption(label=f"{index}. {value[0]}", value=value[0])
                    for index, value in enumerate(options, 1)]
         super().__init__(options=options)
@@ -31,11 +34,11 @@ class TimezoneSelect(miru.Select):
 
 
 class TimezoneChoice(miru.View):
-    def __init__(self, options: t.Sequence[t.Tuple[str, int]], author: hikari.User):
+    def __init__(self, options: typing.Sequence[typing.Tuple[str, int]], author: hikari.User):
         super().__init__(timeout=20)
         self.user = author
-        self.status: t.Optional[bool] = None
-        self.tz: t.Optional[str] = None
+        self.status: typing.Optional[bool] = None
+        self.tz: typing.Optional[str] = None
         self.add_item(TimezoneSelect(options))
 
     async def view_check(self, context: miru.ViewContext) -> bool:
@@ -54,8 +57,8 @@ async def tz_cmd(_: AirySlashContext):
 
 
 @tz_cmd.child()
-@lightbulb.option('tz', 'Timezone.', type=hikari.OptionType.STRING)
-@lightbulb.command("set", "Setup your timezone")
+@lightbulb.option('tz', 'Please input timezone.', type=hikari.OptionType.STRING)
+@lightbulb.command("set", "Choose your timezone")
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def tz_set_cmd(ctx: AirySlashContext):
     tz = ctx.options.tz
@@ -99,12 +102,12 @@ async def tz_diff_cmd(ctx: AirySlashContext):
     pages = SimplePages(pytz.common_timezones, ctx=ctx)
     await pages.send(ctx.interaction, responded=True)
 
-#
-# def load(bot: Airy) -> None:
-#     bot.add_plugin(timezone)
-#     pass
-#
-#
-# def unload(bot: Airy) -> None:
-#     bot.remove_plugin(timezone)
-#     pass
+
+def load(bot: "Airy") -> None:
+    bot.add_plugin(timezone)
+    pass
+
+
+def unload(bot: "Airy") -> None:
+    bot.remove_plugin(timezone)
+    pass

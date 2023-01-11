@@ -8,6 +8,8 @@ import typing
 import attr
 import hikari
 
+from asyncpg import Record  # type: ignore
+
 from airy.models.db.impl import DatabaseModel
 from airy.utils.time import utcnow
 
@@ -42,6 +44,18 @@ class DatabaseTimer(DatabaseModel):
 
     extra: dict[str, typing.Any]
     """Optional data for this timer. May be a JSON-serialized string depending on the event type."""
+
+    @classmethod
+    def _parse_record(cls, record: Record):
+        return DatabaseTimer(id=record.get("id"),
+                             guild_id=hikari.Snowflake(record.get("guild_id")),
+                             user_id=hikari.Snowflake(record.get("user_id")),
+                             channel_id=hikari.Snowflake(record.get("channel_id"))
+                             if record.get("channel_id") else None,
+                             expires=record.get("expires"),
+                             created=record.get("created"),
+                             event=TimerEnum(record.get("event")),
+                             extra=json.loads(record.get("extra")))
 
     @classmethod
     async def create(cls,
@@ -103,15 +117,7 @@ class DatabaseTimer(DatabaseModel):
         if not record:
             return None
 
-        return DatabaseTimer(id=record.get("id"),
-                             guild_id=hikari.Snowflake(record.get("guild_id")),
-                             user_id=hikari.Snowflake(record.get("user_id")),
-                             channel_id=hikari.Snowflake(record.get("channel_id"))
-                             if record.get("channel_id") else None,
-                             expires=record.get("expires"),
-                             created=record.get("created"),
-                             event=TimerEnum(record.get("event")),
-                             extra=json.loads(record.get("extra")))
+        return cls._parse_record(record)
 
     @classmethod
     async def fetch_first(cls, days: int = 7):
@@ -120,15 +126,7 @@ class DatabaseTimer(DatabaseModel):
         if not record:
             return None
 
-        return DatabaseTimer(id=record.get("id"),
-                             guild_id=hikari.Snowflake(record.get("guild_id")),
-                             user_id=hikari.Snowflake(record.get("user_id")),
-                             channel_id=hikari.Snowflake(record.get("channel_id")) if record.get(
-                                 "channel_id") else None,
-                             expires=record.get("expires"),
-                             created=record.get("created"),
-                             event=TimerEnum(record.get("event")),
-                             extra=json.loads(record.get("extra")))
+        return cls._parse_record(record)
 
     @classmethod
     async def fetch_all(cls, user: hikari.SnowflakeishOr[hikari.PartialUser], limit: int = 10):
@@ -136,12 +134,4 @@ class DatabaseTimer(DatabaseModel):
                                      hikari.Snowflake(user),
                                      limit)
 
-        return [DatabaseTimer(id=record.get("id"),
-                              guild_id=hikari.Snowflake(record.get("guild_id")),
-                              user_id=hikari.Snowflake(record.get("user_id")),
-                              channel_id=hikari.Snowflake(record.get("channel_id")) if record.get(
-                                  "channel_id") else None,
-                              expires=record.get("expires"),
-                              created=record.get("created"),
-                              event=TimerEnum(record.get("event")),
-                              extra=json.loads(record.get("extra"))) for record in records]
+        return [cls._parse_record(record) for record in records]

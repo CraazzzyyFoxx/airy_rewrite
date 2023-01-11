@@ -78,16 +78,3 @@ class EmojisEnum(str, Enum):
     cross_mark = "\u274C"
     new = "\U0001F195"
     pencil = "\u270F"
-
-    # Badges
-    # BUGHUNTER = "<:bughunter:927590809241530430>"
-    # BUGHUNTER_GOLD = "<:bughunter_gold:927590820448710666>"
-    # CERT_MOD = "<:cert_mod:927582595808657449>"
-    # EARLY_SUPPORTER = "<:early_supporter:927582684123914301>"
-    # HYPESQUAD_BALANCE = "<:hypesquad_balance:927582757587136582>"
-    # HYPESQUAD_BRAVERY = "<:hypesquad_bravery:927582770329444434>"
-    # HYPESQUAD_BRILLIANCE = "<:hypesquad_brilliance:927582740977684491>"
-    # HYPESQUAD_EVENTS = "<:hypesquad_events:927582724523450368>"
-    # PARTNER = "<:partner:927591117304778772>"
-    # STAFF = "<:staff:927591104902201385>"
-    # VERIFIED_DEVELOPER = "<:verified_developer:927582706974462002>"
