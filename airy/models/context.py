@@ -103,6 +103,7 @@ class AiryContext(lightbulb.Context):
         assert message is not None
         await view.start(message)
         await view.wait()
+        view.stop()
         return view.value
 
     @property

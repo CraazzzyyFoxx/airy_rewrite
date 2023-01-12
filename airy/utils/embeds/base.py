@@ -32,14 +32,14 @@ class RespondEmbed(BaseEmbed):
     def error(cls, title: typing.Any = None, description: typing.Any = None):
         emb = cls(description=description,
                   color=ColorEnum.ERROR)
-        emb.set_author(icon=RespondIconsEnum.ERROR.value, name=title)
+        emb.set_author(icon=RespondIconsEnum.ERROR, name=title)
         return emb
 
     @classmethod
     def success(cls, title: typing.Any = None, description: typing.Any = None):
         emb = cls(description=description,
                   color=ColorEnum.EMBED_GREEN)
-        emb.set_author(icon=RespondIconsEnum.SUCCESS.value, name=title)
+        emb.set_author(icon=RespondIconsEnum.SUCCESS, name=title)
         return emb
 
     @classmethod
@@ -47,4 +47,11 @@ class RespondEmbed(BaseEmbed):
         emb = cls(description=description,
                   color=ColorEnum.EMBED_BLUE)
         emb.set_author(icon=RespondIconsEnum.COOLDOWN, name=title)
+        return emb
+
+    @classmethod
+    def help(cls, title: typing.Any = None, description: typing.Any = None):
+        emb = cls(description=description,
+                  color=ColorEnum.EMBED_BLUE)
+        emb.set_author(icon=RespondIconsEnum.HELP, name=title)
         return emb

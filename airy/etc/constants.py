@@ -45,24 +45,25 @@ class RespondEmojiEnum(str, Enum):
 
 
 class RespondIconsEnum(str, Enum):
-    SUCCESS = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854231283929098"))
-    ERROR = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854215475597362"))
+    SUCCESS = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062890067330343004"))
+    ERROR = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062890056139935925"))
     NONE = str(hikari.files.URL("https://cdn.discordapp.com/emojis/882620201764524122"))
-    COOLDOWN = str(hikari.files.URL("https://cdn.discordapp.com/emojis/959571499918983198"))
+    COOLDOWN = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062889959721283594"))
+    HELP = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062891169761206373"))
 
 
 class MenuEmojiEnum(str, Enum):
-    ADD = "<:add:956860077506183189>"
-    REMOVE = "<:remove:956860179079634994>"
-    SAVE = "<:save:956861503171076166>"
-    TRASHCAN = "<:trashcan:956861893308461086>"
+    ADD = "<:icons8add:1062890029615173742>"
+    REMOVE = "<:icons8remove:1062890013831987220>"
+    SAVE = "<:icons8save:1062889982144036955>"
+    TRASHCAN = "<:icons8trashcan:1062890043691237520>"
 
 
 class MenuIconsEnum(str, Enum):
-    ADD = "https://cdn.discordapp.com/emojis/956860077506183189"
-    REMOVE = "https://cdn.discordapp.com/emojis/956860179079634994"
-    SAVE = "https://cdn.discordapp.com/emojis/956861503171076166"
-    TRASHCAN = "https://cdn.discordapp.com/emojis/956861893308461086"
+    ADD = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062890029615173742"))
+    REMOVE = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062890013831987220"))
+    SAVE = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062889982144036955"))
+    TRASHCAN = str(hikari.files.URL("https://cdn.discordapp.com/emojis/1062890043691237520"))
 
 
 class EmojisEnum(str, Enum):
