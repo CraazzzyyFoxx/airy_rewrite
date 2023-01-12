@@ -8,7 +8,7 @@ import lightbulb
 
 from airy.models import AiryPlugin, AirySlashContext
 from airy.utils import RespondEmbed, SimplePages, helpers, time
-from airy.etc import RespondEmojiEnum
+from airy.etc import RespondEmojiEnum, ColorEnum
 
 role_plugin = AiryPlugin('Role')
 role_plugin.add_checks(lightbulb.guild_only)
@@ -73,7 +73,10 @@ async def role_all(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -104,7 +107,10 @@ async def role_rall(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -178,7 +184,10 @@ async def role_humans(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -210,7 +219,10 @@ async def role_removehumans(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -240,7 +252,10 @@ async def role_bots(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -272,7 +287,10 @@ async def role_removebots(ctx: AirySlashContext, role: hikari.Role):
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -305,7 +323,10 @@ async def role_in(ctx: AirySlashContext, base_role: hikari.Role, new_role: hikar
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
@@ -338,7 +359,10 @@ async def role_removein(ctx: AirySlashContext, base_role: hikari.Role, new_role:
         return
 
     count = 0
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    e = hikari.Embed(title="Please Wait",
+                     description="It can take a while due to discord rate limits",
+                     color=ColorEnum.dark_gold)
+    await ctx.respond(embed=e, response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
     async with asyncio.TaskGroup() as tg:
         members = ctx.bot.cache.get_members_view_for_guild(ctx.guild_id)
