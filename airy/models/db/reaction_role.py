@@ -5,7 +5,6 @@ import hikari
 from asyncpg import Record  # type:  ignore
 
 from airy.models.db.impl import DatabaseModel
-from airy.utils import cache
 
 __all__ = ("DatabaseReactionRole",)
 
@@ -39,7 +38,7 @@ class DatabaseReactionRole(DatabaseModel):
             emoji: hikari.Emoji
     ) -> DatabaseReactionRole | None:
 
-        model: DatabaseReactionRole = await cls.fetch(guild, channel, message, role)
+        model: DatabaseReactionRole = await cls.fetch(channel, message, role)
 
         if model:
             raise ValueError("This role already exists. ")
@@ -54,9 +53,6 @@ class DatabaseReactionRole(DatabaseModel):
                                                           emoji.mention
                                                           )
 
-        cls.fetch_all.invalidate(channel, message)
-        cls.fetch.invalidate(channel, message, role)
-        cls.fetch_by_emoji.invalidate(channel, message, emoji)
         return DatabaseReactionRole(id=model_id,
                                     guild_id=guild,
                                     channel_id=channel,
@@ -92,10 +88,6 @@ class DatabaseReactionRole(DatabaseModel):
 
         model.emoji = emoji
 
-        cls.fetch_all.invalidate(channel, message)
-        cls.fetch.invalidate(channel, message, role)
-        cls.fetch_by_emoji.invalidate(model.channel_id, model.message_id, model.emoji)
-
         return model
 
     @classmethod
@@ -117,9 +109,6 @@ class DatabaseReactionRole(DatabaseModel):
                                               message,
                                               role)
 
-        cls.fetch_all.invalidate(channel, message)
-        cls.fetch.invalidate(channel, message, role)
-        cls.fetch_by_emoji.invalidate(model.channel_id, model.message_id, model.emoji)
         return model
 
     @classmethod
@@ -138,11 +127,6 @@ class DatabaseReactionRole(DatabaseModel):
                                                                     and message_id=$2""",
                                               channel,
                                               message)
-
-        for model in models:
-            cls.fetch_all.invalidate(channel, message)
-            cls.fetch.invalidate(channel, message, model.role_id)
-            cls.fetch_by_emoji.invalidate(model.channel_id, model.message_id, model.emoji)
 
         return models
 
@@ -165,15 +149,10 @@ class DatabaseReactionRole(DatabaseModel):
                                               guild,
                                               role,
                                               )
-        for model in models:
-            cls.fetch_all.invalidate(model.channel_id, model.message_id)
-            cls.fetch.invalidate(model.channel_id, model.message_id, model.role_id)
-            cls.fetch_by_emoji.invalidate(model.channel_id, model.message_id, model.emoji)
 
         return models
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch(
             cls,
             channel: hikari.Snowflake,
@@ -193,7 +172,6 @@ class DatabaseReactionRole(DatabaseModel):
         return cls._parse_record(record)
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch_by_emoji(
             cls,
             channel: hikari.Snowflake,
@@ -212,7 +190,6 @@ class DatabaseReactionRole(DatabaseModel):
         return cls._parse_record(record)
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch_all(
             cls,
             channel: hikari.Snowflake,

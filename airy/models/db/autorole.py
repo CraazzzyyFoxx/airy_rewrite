@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+
+
 import attr
 import hikari
 
 from asyncpg import Record  # type: ignore
 
 from airy.models.db.impl import DatabaseModel
-from airy.utils import cache
 
 
 @attr.define()
@@ -33,8 +34,6 @@ class DatabaseAutoRole(DatabaseModel):
                                    guild,
                                    role)
 
-        cls.fetch_all.invalidate(guild)
-        cls.fetch.invalidate(guild, role)
         return DatabaseAutoRole(id=id, guild_id=guild, role_id=role)
 
     @classmethod
@@ -47,23 +46,19 @@ class DatabaseAutoRole(DatabaseModel):
         await cls.db.execute("""delete from autorole where guild_id = $1 and role_id=$2""",
                              guild,
                              role)
-        cls.fetch_all.invalidate(guild)
-        cls.fetch.invalidate(guild, role)
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch(cls, guild: hikari.Snowflake, role: hikari.Snowflake) -> DatabaseAutoRole | None:
         record = await cls.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
                                        guild,
                                        role)
 
         if not record:
-            raise ValueError("The role does not exist ")
+            return None
 
         return cls._parse_record(record)
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch_all(cls, guild: hikari.Snowflake) -> list[DatabaseAutoRole]:
         records = await cls.db.fetch("""select * from autorole where guild_id=$1""",
                                      guild)

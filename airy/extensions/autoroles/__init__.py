@@ -43,7 +43,7 @@ async def auto_role_create(ctx: AirySlashContext, role: hikari.Role):
     try:
         _ = await AutoRolesService.create(ctx.guild_id, role)
     except ValueError:
-        return await ctx.respond(embed=RespondEmbed.error("The specified group role already exists"),
+        return await ctx.respond(embed=RespondEmbed.error("The specified  auto role already exists"),
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
     await ctx.respond(embed=RespondEmbed.success('Successfully added.',

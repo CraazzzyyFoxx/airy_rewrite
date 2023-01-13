@@ -34,6 +34,7 @@ parsedatetime = "^2.6"
 levenshtein = "^0.20.9"
 fuzzywuzzy = "^0.18.0"
 pygount = "^1.5.1"
+cashews = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 

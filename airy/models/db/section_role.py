@@ -8,7 +8,6 @@ import attr
 import hikari
 
 from airy.models.db.impl import DatabaseModel
-from airy.utils import cache
 
 __all__ = ("DatabaseSectionRole", "DatabaseEntrySectionRole", "HierarchyRoles")
 
@@ -66,9 +65,6 @@ class DatabaseSectionRole(DatabaseModel):
 
         entries = await DatabaseEntrySectionRole.fetch(role)
 
-        cls.fetch.invalidate(guild, role)
-        cls.fetch_all.invalidate(guild)
-
         return DatabaseSectionRole(id=id_[0],
                                    guild_id=hikari.Snowflake(guild),
                                    role_id=hikari.Snowflake(role),
@@ -77,7 +73,6 @@ class DatabaseSectionRole(DatabaseModel):
                                    )
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch(cls,
                     guild: hikari.Snowflake,
                     role: hikari.Snowflake) -> DatabaseSectionRole | None:
@@ -104,18 +99,13 @@ class DatabaseSectionRole(DatabaseModel):
                               self.guild_id,
                               self.role_id,
                               self.hierarchy)
-        self.fetch.invalidate(self.guild_id, self.role_id)
-        self.fetch_all.invalidate(self.guild_id)
 
     async def delete(self):
         await self.db.execute("""DELETE FROM sectionrole where guild_id= $1 and role_id = $2""",
                               self.guild_id,
                               self.role_id)
-        self.fetch.invalidate(self.guild_id, self.role_id)
-        self.fetch_all.invalidate(self.guild_id)
 
     @classmethod
-    @cache.cache(ignore_kwargs=True)
     async def fetch_all(cls, guild: hikari.Snowflake) -> list[DatabaseSectionRole]:
         records = await cls.db.fetch("""select * from sectionrole where guild_id = $1""",
                                      guild,
@@ -140,9 +130,6 @@ class DatabaseSectionRole(DatabaseModel):
         data = await DatabaseEntrySectionRole.fetch(self.role_id)
         self.entries = data
 
-        self.fetch.invalidate(self.guild_id, self.role_id)
-        self.fetch_all.invalidate(self.guild_id)
-
     async def remove_entries(self, entries: list[hikari.Snowflake]):
         if not entries:
             return
@@ -150,9 +137,6 @@ class DatabaseSectionRole(DatabaseModel):
                               [int(entry) for entry in entries])
         data = await DatabaseEntrySectionRole.fetch(self.role_id)
         self.entries = data
-
-        self.fetch.invalidate(self.guild_id, self.role_id)
-        self.fetch_all.invalidate(self.guild_id)
 
 
 @attr.define()

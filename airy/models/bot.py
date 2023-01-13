@@ -40,7 +40,6 @@ class Airy(lightbulb.BotApp, ABC):
                 | hikari.Intents.ALL_MESSAGES
                 | hikari.Intents.MESSAGE_CONTENT
         )
-
         super(Airy, self).__init__(
             bot_config.token,
             prefix="dev",
