@@ -45,13 +45,6 @@ class MetaPlugin(AiryPlugin):
 mp = MetaPlugin()
 
 
-@mp.listener(lightbulb.CommandInvocationEvent)
-async def command_invoke_listener(event: lightbulb.CommandInvocationEvent) -> None:
-    logger.info(
-        f"Command {event.command.name} was invoked by {event.context.author} in guild {event.context.guild_id}."
-    )
-
-
 def load(bot: Airy) -> None:
     bot.add_plugin(mp)
     bot.subscribe(hikari.GuildJoinEvent, mp.on_guild_join)

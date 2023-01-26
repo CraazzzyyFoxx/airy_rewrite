@@ -7,6 +7,7 @@ from enum import IntEnum
 import attr
 import hikari
 
+from airy.models import RoleAlreadyExists, RoleDoesNotExist
 from airy.models.db.impl import DatabaseModel
 
 __all__ = ("DatabaseSectionRole", "DatabaseEntrySectionRole", "HierarchyRoles")
@@ -52,6 +53,12 @@ class DatabaseSectionRole(DatabaseModel):
                      hierarchy: HierarchyRoles,
                      entries: list[hikari.Snowflake]
                      ):
+        record = await cls.db.fetchrow("""select * from sectionrole where guild_id = $1 and role_id = $2 """,
+                                       guild,
+                                       role)
+        if record:
+            raise RoleAlreadyExists()
+
         id_ = await cls.db.fetch("""INSERT INTO sectionrole (guild_id, role_id, hierarchy) 
                                 VALUES ($1, $2, $3) RETURNING id""",
                                  hikari.Snowflake(guild),
@@ -80,7 +87,7 @@ class DatabaseSectionRole(DatabaseModel):
                                        guild,
                                        role)
         if not record:
-            return None
+            raise RoleDoesNotExist()
 
         entries = await DatabaseEntrySectionRole.fetch(role)
 

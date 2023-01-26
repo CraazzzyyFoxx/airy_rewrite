@@ -13,7 +13,7 @@ from ..models import errors
 from airy.models import AirySlashContext
 
 from .matchers import URL_MATCHER, INVITE_MATCHER, MESSAGE_LINK_MATCHER
-from .embeds import RespondEmbed
+from .embed import RespondEmbed
 
 __all__ = ("add_embed_footer",
            "get_color",

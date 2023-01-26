@@ -5,10 +5,10 @@ import typing
 import hikari
 import lightbulb
 
-from airy.models import AiryPlugin, AirySlashContext
-from airy.utils import RespondEmbed, SimplePages
+from airy.models import AiryPlugin, AirySlashContext, errors
+from airy.utils import RespondEmbed, SimplePages, to_str_permissions, PermissionsErrorEmbed
 
-from airy.services.autoroles import AutoRolesService
+from airy.services.autorole import AutoRolesService
 
 auto_role_plugin = AiryPlugin('AutoRoles')
 auto_role_plugin.add_checks(lightbulb.guild_only)
@@ -32,6 +32,28 @@ if typing.TYPE_CHECKING:
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def auto_role_cmd(_: AirySlashContext):
     pass
+
+
+@auto_role_cmd.set_error_handler()
+async def reactionrole_error_handler(event: lightbulb.CommandErrorEvent):
+    error = event.exception.original
+    if isinstance(error, errors.RoleAlreadyExists):
+        embed = RespondEmbed.error(
+            title="This autorole already exists",
+            description=f"Try deleting a autorole with **/autorole remove**")
+        await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+    elif isinstance(error, errors.RoleDoesNotExist):
+        embed = RespondEmbed.error(
+            title="This autorole does not exists",
+            description=f"Try creating a autorole with **/autorole add**")
+        await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+
+    if isinstance(error, (hikari.NotFoundError, hikari.ForbiddenError)):
+        perms = await check_bot_permissions(event.app, event.context.guild_id)  # type: ignore
+        if perms:
+            description = to_str_permissions(perms)
+            embed = PermissionsErrorEmbed(description=description)
+            await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
 
 
 @auto_role_cmd.child()

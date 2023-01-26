@@ -55,3 +55,16 @@ class RespondEmbed(BaseEmbed):
                   color=ColorEnum.EMBED_BLUE)
         emb.set_author(icon=RespondIconsEnum.HELP, name=title)
         return emb
+
+
+class PermissionsErrorEmbed(hikari.Embed):
+    def __init__(self,
+                 *,
+                 description: typing.Any = None,
+                 url: typing.Optional[str] = None,
+                 ):
+        super().__init__(description=description, url=url, color=ColorEnum.ERROR)
+        self.set_author(icon=RespondIconsEnum.ERROR, name="MISSING PERMISSIONS")
+        self.description = description
+        self.timestamp = utcnow()
+

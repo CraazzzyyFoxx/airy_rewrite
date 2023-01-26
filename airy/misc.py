@@ -1,17 +1,20 @@
 from pathlib import Path
 
+import sentry_sdk
+from loguru import logger
 
+from airy.config import bot_config
 from airy.models.bot import Airy
 
 bot = Airy()
 # i18n = I18nMiddleware("bot", locales_dir, default="en")
 
-# if config.SENTRY_URL:
-#     logger.info("Setup Sentry SDK")
-#     sentry_sdk.init(
-#         config.SENTRY_URL,
-#         traces_sample_rate=1.0,
-#     )
+if True:
+    logger.info("Setup Sentry SDK")
+    sentry_sdk.init(
+        "https://afcb247293e24d7ab155ec3dcd94f318@o4504128802652160.ingest.sentry.io/4504567669260288",
+        traces_sample_rate=1.0,
+    )
 
 
 def setup():

@@ -10,7 +10,7 @@ import miru
 from miru.ext import nav
 
 
-from airy.utils.embeds import RespondEmbed
+from airy.utils.embed import RespondEmbed
 
 if TYPE_CHECKING:
     from airy.models.context import AiryContext

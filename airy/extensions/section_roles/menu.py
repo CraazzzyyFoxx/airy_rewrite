@@ -7,8 +7,8 @@ import hikari
 import miru
 from fuzzywuzzy import process
 
-from airy.models import AirySlashContext, DatabaseSectionRole, MenuViewAuthorOnly, HierarchyRoles
-from airy.services.sectionroles import SectionRolesService
+from airy.models import AirySlashContext,  MenuViewAuthorOnly
+from airy.services.sectionrole import SectionRolesService, DatabaseSectionRole, HierarchyRoles
 from airy.etc import ColorEnum, MenuEmojiEnum
 from airy.utils import utcnow, helpers, RespondEmbed
 

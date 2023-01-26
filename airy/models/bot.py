@@ -155,12 +155,17 @@ class Airy(lightbulb.BotApp, ABC):
         for ext_path in path.iterdir():
             if ext_path.is_dir():
                 glob = ext_path.rglob if recursive else ext_path.glob
-                for ext_path_2 in glob("__init__.py"):
-                    ext = str(ext_path_2.with_suffix("")).replace(os.sep, ".")
-                    try:
-                        self.load_extensions(ext)
-                    except lightbulb.errors.ExtensionMissingLoad:
-                        pass
+                # for ext_path_2 in glob("__init__.py"):
+                #     ext = str(ext_path_2.with_suffix("")).replace(os.sep, ".")
+                #     try:
+                #         self.load_extensions(ext)
+                #     except lightbulb.errors.ExtensionMissingLoad:
+                #         pass
+                try:
+                    ext = str(ext_path.with_suffix("")).replace(os.sep, ".")
+                    self.load_extensions(ext)
+                except lightbulb.errors.ExtensionMissingLoad:
+                    pass
 
         logger.info("Extensions loaded")
 
@@ -296,16 +301,19 @@ class Airy(lightbulb.BotApp, ABC):
 
         path = self.check_path(*paths)
 
-        glob = path.rglob if recursive else path.glob
-        for ext_path in glob("[!_]*.py"):
-            ext = str(ext_path.with_suffix("")).replace(os.sep, ".")
-            self.load_service(ext)
+        for ext_path in path.iterdir():
+            if ext_path.is_dir():
+                try:
+                    ext = str(ext_path.with_suffix("")).replace(os.sep, ".")
+                    self.load_service(ext)
+                except errors.ServiceMissingLoad:
+                    pass
 
         logger.info("Services started")
 
-    ###########################
-    # COMMAND HANDLER (CUSTOM #
-    ###########################
+    ############################
+    # COMMAND HANDLER (CUSTOM) #
+    ############################
 
     async def get_slash_context(
             self,

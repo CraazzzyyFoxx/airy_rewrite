@@ -17,7 +17,7 @@ from .helpers import (add_embed_footer,
                       format_reason
                       )
 
-from .embeds import *
+from .embed import *
 from .paginator import AiryPages, FieldPageSource, TextPageSource, SimplePageSource, SimplePages
 from .checks import (is_mod,
                      is_admin,
@@ -31,3 +31,4 @@ from .formats import Plural, human_join, TabularData, format_dt
 from .matchers import *
 from .time import *
 from .ratelimiter import RateLimiter, BucketType
+from .check_perms import check_bot_permissions, to_str_permissions

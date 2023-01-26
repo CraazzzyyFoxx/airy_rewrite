@@ -6,16 +6,7 @@ import lightbulb
 from airy.models.bot import Airy
 from airy.models import AirySlashContext
 from airy.etc import RespondEmojiEnum, get_perm_str
-from airy.utils import RespondEmbed
 
-logger = logging.getLogger(__name__)
-
-troubleshooter = lightbulb.Plugin("Troubleshooter")
-
-# Find perms issues
-# Find automod config issues
-# Find missing channel perms issues
-# ...
 
 REQUIRED_PERMISSIONS = (
     hikari.Permissions.VIEW_AUDIT_LOG
@@ -37,7 +28,6 @@ REQUIRED_PERMISSIONS = (
     | hikari.Permissions.SPEAK
 )
 
-# Explain why the bot requires the perm
 PERM_DESCRIPTIONS = {
     hikari.Permissions.VIEW_AUDIT_LOG: "Required in logs to fill in details such as who the moderator in question "
                                        "was, or the reason of the action.",
@@ -75,47 +65,22 @@ PERM_DESCRIPTIONS = {
 }
 
 
-@troubleshooter.command
-@lightbulb.command("troubleshoot", "Diagnose and locate common configuration issues.", app_command_dm_enabled=False)
-@lightbulb.implements(lightbulb.SlashCommand)
-async def troubleshoot(ctx: AirySlashContext) -> None:
-
-    assert ctx.guild_id is not None
-
-    me = ctx.app.cache.get_member(ctx.guild_id, ctx.app.user_id)
+async def check_bot_permissions(app: Airy, guild: hikari.Snowflake):
+    me = app.cache.get_member(guild, app.user_id)
     assert me is not None
 
     perms = lightbulb.utils.permissions_for(me)
     missing_perms = ~perms & REQUIRED_PERMISSIONS
-    content = []
-
-    if missing_perms is not hikari.Permissions.NONE:
-        content.append("**Missing Permissions:**")
-        content += [
-            f"{RespondEmojiEnum.ERROR} **{get_perm_str(perm)}**: {desc}"
-            for perm, desc in PERM_DESCRIPTIONS.items() if missing_perms & perm
-        ]
-
-    if not content:
-        embed = RespondEmbed.success(
-            title="No problems found!",
-            description="If you believe there is an issue with Airy, found a bug, or simply have a question, "
-                        "please join the [support server!](https://discord.gg/J4Dy8dTARf)"
-        )
-    else:
-        content = "\n".join(content)  # type: ignore
-        embed = RespondEmbed.error(
-            title="Uh Oh!",
-            description=f"It looks like there may be some issues with the configuration. Please review the list "
-                        f"below!\n\n{content}\n\nIf you need any assistance resolving these issues, please join the ["
-                        f"support server!](https://discord.gg/J4Dy8dTARf)")
-
-    await ctx.respond(embed=embed)
+    return missing_perms
 
 
-def load(bot: Airy) -> None:
-    bot.add_plugin(troubleshooter)
+def to_str_permissions(perms: hikari.Permissions) -> str:
+    content = [
+        f"{RespondEmojiEnum.ERROR} **{get_perm_str(perm)}**: {desc}"
+        for perm, desc in PERM_DESCRIPTIONS.items() if perms & perm
+    ]
+
+    return "\n".join(content)
 
 
-def unload(bot: Airy) -> None:
-    bot.remove_plugin(troubleshooter)
+

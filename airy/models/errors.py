@@ -42,18 +42,6 @@ class BadArgument(ErrorForUser):
     pass
 
 
-class TagAlreadyExists(AiryError):
-    """
-    Raised when a tag is trying to get created but already exists.
-    """
-
-
-class TagNotFound(AiryError):
-    """
-    Raised when a tag is not found, although most functions just return None.
-    """
-
-
 class RoleHierarchyError(CheckFailure):
     """
     Raised when an action fails due to role hierarchy.
@@ -98,29 +86,16 @@ class TimeInFuture(TimeConversionError):
     pass
 
 
-class PlayerException(AiryError):
-    """Base Player Exception"""
+class RoleAlreadyExists(AiryError):
+    def __init__(self):
+        self.message = "This role already exists."
 
 
-class PlayerNotFound(PlayerException):
+class RoleDoesNotExist(AiryError):
+    def __init__(self):
+        self.message = "This role does not exists."
+
+class InteractionTimeOutError(Exception):
     """
-    Raised when a player is not found, although most functions just return None.
-    """
-
-
-class AlreadyConnected(PlayerException):
-    """
-    Raised when a bot already connected to some channel, although most functions just return None.
-    """
-
-
-class MissingPermissionsToEditPlayer(CheckFailure):
-    """
-    Raised when a member don't have permission to edit player, although most functions just return None.
-    """
-
-
-class NoVoiceChannel(CheckFailure):
-    """
-    Raised when a member not in the same channel and trying edit player.
+    Raised when a user interaction times out.
     """

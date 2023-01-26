@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-
-
 import attr
 import hikari
 
 from asyncpg import Record  # type: ignore
 
 from airy.models.db.impl import DatabaseModel
+from airy.models import errors
 
 
 @attr.define()
@@ -25,10 +24,12 @@ class DatabaseAutoRole(DatabaseModel):
 
     @classmethod
     async def create(cls, guild: hikari.Snowflake, role: hikari.Snowflake) -> DatabaseAutoRole | None:
-        model = await cls.fetch(guild, role)
+        record = await cls.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
+                                       guild,
+                                       role)
 
-        if model:
-            raise ValueError("This role already exists. ")
+        if record:
+            raise errors.RoleAlreadyExists()
 
         id = await cls.db.fetchval("""insert into autorole (guild_id, role_id) VALUES ($1, $2)""",
                                    guild,
@@ -39,13 +40,10 @@ class DatabaseAutoRole(DatabaseModel):
     @classmethod
     async def delete(cls, guild: hikari.Snowflake, role: hikari.Snowflake):
         model = await cls.fetch(guild, role)
-
-        if model:
-            raise ValueError("The role does not exist ")
-
         await cls.db.execute("""delete from autorole where guild_id = $1 and role_id=$2""",
                              guild,
                              role)
+        return model
 
     @classmethod
     async def fetch(cls, guild: hikari.Snowflake, role: hikari.Snowflake) -> DatabaseAutoRole | None:
@@ -54,7 +52,7 @@ class DatabaseAutoRole(DatabaseModel):
                                        role)
 
         if not record:
-            return None
+            raise errors.RoleDoesNotExist()
 
         return cls._parse_record(record)
 

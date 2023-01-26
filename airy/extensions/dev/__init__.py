@@ -13,7 +13,7 @@ import miru
 from miru.ext import nav
 
 from airy.models import AuthorOnlyNavigator, AiryPrefixContext, AuthorOnlyView, DatabaseBlacklist
-from airy.utils.embeds import RespondEmbed
+from airy.utils.embed import RespondEmbed
 
 dev = lightbulb.Plugin("Development")
 dev.add_checks(lightbulb.owner_only)

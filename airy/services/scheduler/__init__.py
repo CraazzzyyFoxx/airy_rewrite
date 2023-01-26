@@ -33,67 +33,62 @@ class ConversionMode(int, Enum):
     ABSOLUTE = 1
 
 
-class SchedulerService:
+class SchedulerServiceT:
     """
     All timer-related functionality, including time conversion from strings,
     creation, scheduling & dispatching of timers.
     Essentially the internal scheduler of the bot.
     """
 
-    app: t.Optional[Airy] = None
-    _is_started: bool = False
-    _current_timer: t.Optional[DatabaseTimer] = None  # Currently, active timer that is being awaited
-    _current_task: t.Optional[asyncio.Task] = None  # Current task that is handling current_timer
-    _timer_loop: t.Optional[IntervalLoop] = None
+    def __init__(self):
+        self.app: t.Optional[Airy] = None
+        self._is_started: bool = False
+        self._current_timer: t.Optional[DatabaseTimer] = None  # Currently, active timer that is being awaited
+        self._current_task: t.Optional[asyncio.Task] = None  # Current task that is handling current_timer
+        self._timer_loop: t.Optional[IntervalLoop] = None
 
-    @classmethod
-    def current_timer(cls):
-        return cls._current_timer
+    def current_timer(self):
+        return self._current_timer
 
-    @classmethod
-    async def setup(cls, event: hikari.StartedEvent):
-        cls.start(event.app)  # type: ignore
+    async def setup(self, event: hikari.StartedEvent):
+        self.start(event.app)  # type: ignore
 
-    @classmethod
-    def start(cls, app: "Airy") -> None:
+    def start(self, app: "Airy") -> None:
         """
         Start the scheduler.
         """
-        cls.app = app
-        cls._timer_loop = IntervalLoop(cls._wait_for_active_timers, hours=1.0)
-        cls._timer_loop.start()
-        cls._is_started = True
+        self.app = app
+        self._timer_loop = IntervalLoop(self._wait_for_active_timers, hours=1.0)
+        self._timer_loop.start()
+        self._is_started = True
         logger.info("Scheduler startup complete.")
 
-    @classmethod
-    def restart(cls) -> None:
+    def restart(self) -> None:
         """
         Restart the scheduler.
         """
-        cls._is_started = False
-        if cls._current_task is not None:
-            cls._current_task.cancel()
-        cls._current_task = None
-        cls._current_timer = None
-        cls._timer_loop.cancel()
-        cls._timer_loop.start()
-        cls._is_started = True
+        self._is_started = False
+        if self._current_task is not None:
+            self._current_task.cancel()
+        self._current_task = None
+        self._current_timer = None
+        self._timer_loop.cancel()
+        self._timer_loop.start()
+        self._is_started = True
         logger.info("Scheduler restart complete.")
 
-    @classmethod
-    def stop(cls) -> None:
+    def stop(self) -> None:
         """
         Stop the scheduler.
         """
-        cls._is_started = False
-        cls._timer_loop.cancel()
-        if cls._current_task is not None:
-            cls._current_task.cancel()
-        cls._current_timer = None
+        self._is_started = False
+        self._timer_loop.cancel()
+        if self._current_task is not None:
+            self._current_task.cancel()
+        self._current_timer = None
         logger.info("Scheduler shutdown complete.")
 
-    @classmethod
-    async def get_latest_timer(cls, days: int = 7) -> t.Optional[DatabaseTimer]:
+    async def get_latest_timer(self, days: int = 7) -> t.Optional[DatabaseTimer]:
         """Gets the latest timer in the specified range of days.
 
         Parameters
@@ -106,12 +101,11 @@ class SchedulerService:
         Optional[Timer]
             The timer object that was found, if any.
         """
-        await cls.app.wait_until_started()
+        await self.app.wait_until_started()
         model = await DatabaseTimer.fetch_first(days)
         return model
 
-    @classmethod
-    async def _call_timer(cls, timer: DatabaseTimer) -> None:
+    async def _call_timer(self, timer: DatabaseTimer) -> None:
         """Calls the provided timer, dispatches TimerCompleteEvent, and removes the timer object from
         the database.
 
@@ -122,26 +116,25 @@ class SchedulerService:
         """
 
         await timer.delete()
-        cls._current_timer = None
+        self._current_timer = None
         try:
-            cls_timer: typing.Type[BaseTimerEvent] = timers_dict_enum_to_class[timer.event]
-            event = cls_timer(cls.app, timer.guild_id, timer)
+            self_timer: typing.Type[BaseTimerEvent] = timers_dict_enum_to_class[timer.event]
+            event = self_timer(self.app, timer.guild_id, timer)
 
-            cls.app.dispatch(event)
+            self.app.dispatch(event)
             logger.info(f"Dispatched timer {timer.__class__} (ID: {timer.id})")
         except Exception as error:
             exception_msg = "\n".join(traceback.format_exception(type(error), error, error.__traceback__))
             logger.error(exception_msg)
 
-    @classmethod
-    async def _dispatch_timers(cls):
+    async def _dispatch_timers(self):
         """
         A task that loops, waits for, and calls pending timers.
         """
         try:
-            while cls.app.is_ready and cls._is_started:
-                timer = await cls.get_latest_timer(days=30)
-                cls._current_timer = timer
+            while self.app.is_ready and self._is_started:
+                timer = await self.get_latest_timer(days=30)
+                self._current_timer = timer
 
                 now = utcnow()
 
@@ -159,27 +152,25 @@ class SchedulerService:
 
                 # TODO: Maybe some sort of queue system so we do not spam out timers like crazy after restart?
                 logger.info(f"Dispatching timer: {timer.event.name} (ID: {timer.id})")
-                await cls._call_timer(timer)
+                await self._call_timer(timer)
 
         except asyncio.CancelledError:
             raise
 
         except (OSError, hikari.GatewayServerClosedConnectionError):
-            if cls._current_task:
-                cls._current_task.cancel()
+            if self._current_task:
+                self._current_task.cancel()
 
-            cls._current_task = asyncio.create_task(cls._dispatch_timers())
+            self._current_task = asyncio.create_task(self._dispatch_timers())
 
-    @classmethod
-    async def _wait_for_active_timers(cls) -> None:
+    async def _wait_for_active_timers(self) -> None:
         """
         Check every hour to see if new timers meet criteria in the database.
         """
-        if cls._current_task is None:
-            cls._current_task = asyncio.create_task(cls._dispatch_timers())
+        if self._current_task is None:
+            self._current_task = asyncio.create_task(self._dispatch_timers())
 
-    @classmethod
-    async def get_timer(cls, timer_id: int) -> DatabaseTimer:
+    async def get_timer(self, timer_id: int) -> DatabaseTimer:
         """Retrieve a currently pending timer.
 
         Parameters
@@ -205,9 +196,8 @@ class SchedulerService:
 
         return model
 
-    @classmethod
     async def create_timer(
-            cls,
+            self,
             expires: datetime.datetime,
             event: TimerEnum,
             guild: hikari.SnowflakeishOr[hikari.PartialGuild],
@@ -238,7 +228,7 @@ class SchedulerService:
         Timer
             The timer object that got created.
         """
-        if not cls._is_started:
+        if not self._is_started:
             raise hikari.ComponentStateConflictError("The scheduler is not running.")
         model = await DatabaseTimer.create(guild=guild,
                                            user=user,
@@ -250,19 +240,18 @@ class SchedulerService:
 
         # If there is already a timer in queue, and it has an expiry that is further than the timer we just created
         # then we restart the dispatch_timers() to re-check for the latest timer.
-        if cls._current_timer and model.expires < cls._current_timer.expires:
+        if self._current_timer and model.expires < self._current_timer.expires:
             logger.debug("Reshuffled timers, created timer is now the latest timer.")
-            if cls._current_task:
-                cls._current_task.cancel()
-            cls._current_task = asyncio.create_task(cls._dispatch_timers())
+            if self._current_task:
+                self._current_task.cancel()
+            self._current_task = asyncio.create_task(self._dispatch_timers())
 
-        elif cls._current_timer is None:
-            cls._current_task = asyncio.create_task(cls._dispatch_timers())
+        elif self._current_timer is None:
+            self._current_task = asyncio.create_task(self._dispatch_timers())
 
         return model
 
-    @classmethod
-    async def update_timer(cls, timer: DatabaseTimer) -> None:
+    async def update_timer(self, timer: DatabaseTimer) -> None:
         """Update a currently running timer, replacing it with the specified timer object.
         If needed, reshuffles timers.
 
@@ -273,15 +262,14 @@ class SchedulerService:
         """
         await timer.update()
 
-        if cls._current_timer and timer.expires < cls._current_timer.expires:
+        if self._current_timer and timer.expires < self._current_timer.expires:
             logger.debug("Reshuffled timers, created timer is now the latest timer.")
-            if cls._current_timer and timer.expires <= cls._current_timer.expires:
-                if cls._current_task:
-                    cls._current_task.cancel()
-                cls._current_task = asyncio.create_task(cls._dispatch_timers())
+            if self._current_timer and timer.expires <= self._current_timer.expires:
+                if self._current_task:
+                    self._current_task.cancel()
+                self._current_task = asyncio.create_task(self._dispatch_timers())
 
-    @classmethod
-    async def cancel_timer(cls, timer_id: int) -> t.Optional[DatabaseTimer]:
+    async def cancel_timer(self, timer_id: int) -> t.Optional[DatabaseTimer]:
         """Prematurely cancel a timer before expiry. Returns the cancelled timer.
 
         Parameters
@@ -301,16 +289,15 @@ class SchedulerService:
 
         await model.delete()
 
-        if cls._current_timer and cls._current_timer.id == model.id:
-            if cls._current_task:
-                cls._current_task.cancel()
-            cls._current_task = asyncio.create_task(cls._dispatch_timers())
+        if self._current_timer and self._current_timer.id == model.id:
+            if self._current_task:
+                self._current_task.cancel()
+            self._current_task = asyncio.create_task(self._dispatch_timers())
 
         return model
 
-    @classmethod
     async def convert_time(
-            cls,
+            self,
             timestr: str,
             *,
             user: t.Optional[hikari.SnowflakeishOr[hikari.PartialUser]] = None,
@@ -418,6 +405,9 @@ class SchedulerService:
             return time_parsed
 
         raise ValueError("Time conversion failed.")
+
+
+SchedulerService = SchedulerServiceT()
 
 
 def load(bot: "Airy"):
