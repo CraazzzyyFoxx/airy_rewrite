@@ -19,7 +19,7 @@ packages = [{include = "airy_rewrite"}]
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 hikari-lightbulb = "^2.3.1"
-hikari-miru = "^2.0.1"
+hikari-miru = "^3.0.0"
 lru-dict = "^1.1.8"
 orjson = "^3.8.3"
 pydantic = "^1.10.2"

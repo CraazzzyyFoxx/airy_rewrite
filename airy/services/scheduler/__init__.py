@@ -13,7 +13,8 @@ import hikari
 from hikari.internal.enums import Enum
 from loguru import logger
 
-from airy.models import DatabaseTimer, DatabaseUser, BaseTimerEvent, timers_dict_enum_to_class, TimerEnum
+from airy.models.db import DatabaseTimer, DatabaseUser, TimerEnum
+from airy.models.events import BaseTimerEvent, timers_dict_enum_to_class
 from airy.utils.tasks import IntervalLoop
 from airy.utils.time import utcnow
 
@@ -122,7 +123,7 @@ class SchedulerServiceT:
             event = self_timer(self.app, timer.guild_id, timer)
 
             self.app.dispatch(event)
-            logger.info(f"Dispatched timer {timer.__class__} (ID: {timer.id})")
+            logger.info(f"Dispatched timer {event.__class__} (ID: {event.timer.id})")
         except Exception as error:
             exception_msg = "\n".join(traceback.format_exception(type(error), error, error.__traceback__))
             logger.error(exception_msg)

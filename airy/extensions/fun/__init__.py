@@ -6,7 +6,7 @@ import hikari
 import lightbulb
 import miru
 
-from airy.models import AirySlashContext
+from airy.models.context import AirySlashContext
 from airy.etc import ColorEnum
 from airy.utils import helpers, RespondEmbed
 

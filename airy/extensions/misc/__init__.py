@@ -3,7 +3,7 @@ import lightbulb
 from lightbulb import plugins
 
 from airy.models.bot import Airy
-from airy.models import AirySlashContext
+from airy.models.context import AirySlashContext
 from airy.etc import ColorEnum
 
 misc = plugins.Plugin("Misc")

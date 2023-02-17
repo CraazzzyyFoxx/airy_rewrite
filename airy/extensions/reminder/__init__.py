@@ -11,7 +11,11 @@ import miru
 
 from loguru import logger
 
-from airy.models import AirySlashContext, AiryPlugin, DatabaseTimer, ReminderEvent, TimerEnum, AuthorOnlyNavigator
+from airy.models.context import AirySlashContext
+from airy.models.plugin import AiryPlugin
+from airy.models.db import DatabaseTimer, TimerEnum
+from airy.models.events import ReminderEvent
+from airy.models.views import AuthorOnlyNavigator
 from airy.models.bot import Airy
 from airy.services.scheduler import SchedulerService
 from airy.etc import ColorEnum
@@ -29,7 +33,7 @@ reminders = ReminderPlugin()
 reminders.add_checks(lightbulb.guild_only)
 
 
-class SnoozeSelect(miru.Select):
+class SnoozeSelect(miru.TextSelect):
     def __init__(self) -> None:
         super().__init__(
             options=[

@@ -12,7 +12,9 @@ import lightbulb
 import miru
 from miru.ext import nav
 
-from airy.models import AuthorOnlyNavigator, AiryPrefixContext, AuthorOnlyView, DatabaseBlacklist
+from airy.models.context import AiryPrefixContext
+from airy.models.views import AuthorOnlyNavigator, AuthorOnlyView
+from airy.models.db import DatabaseBlacklist
 from airy.utils.embed import RespondEmbed
 
 dev = lightbulb.Plugin("Development")

@@ -4,9 +4,13 @@ import attr
 import hikari
 
 from asyncpg import Record  # type: ignore
+from cashews import Cache
 
 from airy.models.db.impl import DatabaseModel
 from airy.models import errors
+
+cache = Cache()
+cache.setup("mem://?size=1000", prefix="autorole")
 
 
 @attr.define()
@@ -31,11 +35,14 @@ class DatabaseAutoRole(DatabaseModel):
         if record:
             raise errors.RoleAlreadyExists()
 
-        id = await cls.db.fetchval("""insert into autorole (guild_id, role_id) VALUES ($1, $2)""",
-                                   guild,
-                                   role)
+        row_id = await cls.db.fetchval("""insert into autorole (guild_id, role_id) VALUES ($1, $2)""",
+                                       guild,
+                                       role)
 
-        return DatabaseAutoRole(id=id, guild_id=guild, role_id=role)
+        await cache.delete(f"autorole:{guild}")
+        await cache.delete(f"autorole:{guild}:{role}")
+
+        return DatabaseAutoRole(id=row_id, guild_id=guild, role_id=role)
 
     @classmethod
     async def delete(cls, guild: hikari.Snowflake, role: hikari.Snowflake):
@@ -43,9 +50,12 @@ class DatabaseAutoRole(DatabaseModel):
         await cls.db.execute("""delete from autorole where guild_id = $1 and role_id=$2""",
                              guild,
                              role)
+        await cache.delete(f"autorole:{guild}")
+        await cache.delete(f"autorole:{guild}:{role}")
         return model
 
     @classmethod
+    @cache(ttl="24h", key="autorole:{guild}:{role}")
     async def fetch(cls, guild: hikari.Snowflake, role: hikari.Snowflake) -> DatabaseAutoRole | None:
         record = await cls.db.fetchrow("""select * from autorole where guild_id=$1 and role_id=$2""",
                                        guild,
@@ -57,12 +67,10 @@ class DatabaseAutoRole(DatabaseModel):
         return cls._parse_record(record)
 
     @classmethod
+    @cache(ttl="24h", key="autorole:{guild}")
     async def fetch_all(cls, guild: hikari.Snowflake) -> list[DatabaseAutoRole]:
         records = await cls.db.fetch("""select * from autorole where guild_id=$1""",
                                      guild)
-
-        if not records:
-            return []
 
         return [cls._parse_record(record) for record in records]
 

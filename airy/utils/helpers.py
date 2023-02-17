@@ -9,11 +9,14 @@ import miru
 
 from fuzzywuzzy import process
 
-from ..models import errors
-from airy.models import AirySlashContext
+from airy.models import errors
+
 
 from .matchers import URL_MATCHER, INVITE_MATCHER, MESSAGE_LINK_MATCHER
 from .embed import RespondEmbed
+
+if t.TYPE_CHECKING:
+    from airy.models import AirySlashContext
 
 __all__ = ("add_embed_footer",
            "get_color",
@@ -149,7 +152,7 @@ def is_member(user: hikari.PartialUser) -> bool:  # Such useful
     raise errors.MemberExpectedError(f"Expected an instance of hikari.Member, not {user.__class__.__name__}!")
 
 
-async def parse_message_link(ctx: AirySlashContext, message_link: str) -> t.Optional[hikari.Message]:
+async def parse_message_link(ctx: "AirySlashContext", message_link: str) -> t.Optional[hikari.Message]:
     """Parse a message_link string into a message object."""
 
     assert ctx.guild_id is not None
@@ -249,7 +252,7 @@ def parse_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
 
 
 async def parse_role(
-        ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext],
+        ctx: t.Union["AirySlashContext", miru.ViewContext, miru.ModalContext],
         value: t.Union[int, str]
         ) -> hikari.Role | None:
     """Checks that provided value is role by id and name"""

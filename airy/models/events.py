@@ -6,8 +6,9 @@ import attr
 import hikari
 
 
-from airy.models import DatabaseTimer, TimerEnum
 from airy.utils.time import utcnow, format_relative
+
+from airy.models.db import DatabaseTimer, TimerEnum
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy

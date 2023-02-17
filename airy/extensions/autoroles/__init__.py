@@ -5,7 +5,9 @@ import typing
 import hikari
 import lightbulb
 
-from airy.models import AiryPlugin, AirySlashContext, errors
+from airy.models.plugin import AiryPlugin
+from airy.models.context import AirySlashContext
+from airy.models import errors
 from airy.utils import RespondEmbed, SimplePages, to_str_permissions, PermissionsErrorEmbed
 
 from airy.services.autorole import AutoRolesService

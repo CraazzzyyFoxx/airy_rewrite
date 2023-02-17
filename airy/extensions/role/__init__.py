@@ -6,7 +6,8 @@ import typing
 import hikari
 import lightbulb
 
-from airy.models import AiryPlugin, AirySlashContext
+from airy.models.context import AirySlashContext
+from airy.models.plugin import AiryPlugin
 from airy.utils import RespondEmbed, SimplePages, helpers, time
 from airy.etc import RespondEmojiEnum, ColorEnum
 

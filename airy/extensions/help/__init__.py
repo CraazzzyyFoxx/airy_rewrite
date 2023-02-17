@@ -6,7 +6,7 @@ import hikari
 import lightbulb
 
 from airy.models.bot import Airy
-from airy.models import AirySlashContext
+from airy.models.context import AirySlashContext
 from airy.etc import ColorEnum
 
 

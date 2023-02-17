@@ -9,7 +9,9 @@ import pytz
 
 from fuzzywuzzy import process
 
-from airy.models import AirySlashContext, DatabaseUser
+from airy.models.context import AirySlashContext
+from airy.models.db import DatabaseUser
+
 from airy.etc import ColorEnum
 from airy.utils import SimplePages, RespondEmbed, format_dt
 
@@ -21,7 +23,7 @@ if typing.TYPE_CHECKING:
 timezone = lightbulb.Plugin("Timezone")
 
 
-class TimezoneSelect(miru.Select):
+class TimezoneSelect(miru.TextSelect):
     def __init__(self, options: typing.Sequence[typing.Tuple[str, int]]):
         options = [miru.SelectOption(label=f"{index}. {value[0]}", value=value[0])
                    for index, value in enumerate(options, 1)]

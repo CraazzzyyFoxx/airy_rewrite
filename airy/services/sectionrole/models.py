@@ -7,7 +7,7 @@ from enum import IntEnum
 import attr
 import hikari
 
-from airy.models import RoleAlreadyExists, RoleDoesNotExist
+from airy.models.errors import RoleAlreadyExists, RoleDoesNotExist
 from airy.models.db.impl import DatabaseModel
 
 __all__ = ("DatabaseSectionRole", "DatabaseEntrySectionRole", "HierarchyRoles")

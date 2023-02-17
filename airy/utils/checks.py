@@ -19,11 +19,11 @@ __all__ = ("is_mod",
            "has_permissions",
            "bot_has_permissions")
 
-from airy.models import BotRoleHierarchyError, RoleHierarchyError
+from airy.models.errors import BotRoleHierarchyError, RoleHierarchyError
 from airy.utils import helpers
 
 if t.TYPE_CHECKING:
-    from airy.models import AiryContext
+    from airy.models.context import AiryContext
 
 
 def _guild_only(ctx: AiryContext) -> bool:

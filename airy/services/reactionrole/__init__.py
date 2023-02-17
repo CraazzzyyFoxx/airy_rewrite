@@ -11,7 +11,7 @@ from airy.services import BaseService
 from airy.utils import helpers
 from airy.models import errors
 
-from .models import DatabaseReactionRole
+from .models import DatabaseReactionRole, ReactionRoleType, DatabaseReactionRoleEntry
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -30,25 +30,19 @@ class ReactionRolesServiceT(BaseService):
         self.bot.unsubscribe(hikari.ReactionDeleteEvent, self._on_reaction_remove)
         self.bot.unsubscribe(hikari.RoleDeleteEvent, self.on_delete_role)
 
-    def _parse(self, *args) -> list[hikari.Snowflake]:
-        return [hikari.Snowflake(arg) for arg in args]
-
     async def on_delete_message(self, event: hikari.MessageDeleteEvent):
-        try:
-            await DatabaseReactionRole.delete_all(event.channel_id, event.message_id)
-        except errors.RoleDoesNotExist:
-            pass
+        model = await DatabaseReactionRole.fetch(event.channel_id, event.message_id)
+        if model:
+            await model.delete()
 
     async def on_delete_role(self, event: hikari.RoleDeleteEvent):
-        try:
-            await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
-        except errors.RoleDoesNotExist:
-            pass
+        await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
 
     async def _process(self, event: hikari.ReactionAddEvent | hikari.ReactionDeleteEvent):
-        me = self.bot.cache.get_member(event.guild_id, self.bot.user_id)
+        channel = self.bot.cache.get_guild_channel(event.channel_id)
+        me = self.bot.cache.get_member(channel.guild_id, self.bot.user_id)
 
-        if not me:
+        if not me or self.bot.user_id == event.user_id:
             return
 
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
@@ -59,14 +53,9 @@ class ReactionRolesServiceT(BaseService):
         else:
             emoji = hikari.Emoji.parse(event.emoji_name)
 
-        try:
-            model: DatabaseReactionRole = await DatabaseReactionRole.fetch_by_emoji(event.channel_id,
-                                                                                    event.message_id,
-                                                                                    emoji)
-        except errors.RoleDoesNotExist:
-            return None
+        model: DatabaseReactionRole = await DatabaseReactionRole.fetch(event.channel_id, event.message_id)
 
-        return model.guild_id, model.role_id, event.user_id
+        return model.guild_id, model.get_role_by_emoji(emoji), event.user_id
 
     async def _on_reaction_add(self, event: hikari.ReactionAddEvent):
         data = await self._process(event)
@@ -77,9 +66,9 @@ class ReactionRolesServiceT(BaseService):
         guild_id, role_id, user_id = data
 
         await self.bot.rest.add_role_to_member(guild=guild_id, user=event.user_id, role=role_id,
-                                              reason="Reaction role")
+                                               reason="Reaction role")
 
-        logger.info("Add Reaction role {} to user {} in guild {}", guild_id, user_id, guild_id)
+        logger.info("Add Reaction role {} to user {} in guild {}", role_id, user_id, guild_id)
 
     async def _on_reaction_remove(self, event: hikari.ReactionDeleteEvent):
         data = await self._process(event)
@@ -90,25 +79,29 @@ class ReactionRolesServiceT(BaseService):
         guild_id, role_id, user_id = data
 
         await self.bot.rest.remove_role_from_member(guild=guild_id, user=event.user_id, role=role_id,
-                                                   reason="Reaction role")
+                                                    reason="Reaction role")
 
-        logger.info("Remove Reaction role {} from user {} in guild {}", guild_id, user_id, guild_id)
+        logger.info("Remove Reaction role {} from user {} in guild {}", role_id, user_id, guild_id)
 
     async def create(
             self,
             guild: hikari.Snowflake,
             channel: hikari.Snowflake,
             message: hikari.Snowflake,
-            role: hikari.Snowflake,
-            emoji: hikari.Emoji
+            type: ReactionRoleType,
+            max: int,
+            roles: list[hikari.Snowflake],
+            emojis: list[hikari.Emoji]
     ) -> DatabaseReactionRole:
         """
 
         :param guild:
         :param channel:
         :param message:
-        :param role:
-        :param emoji:
+        :param roles:
+        :param max:
+        :param type:
+        :param emojis:
 
         :return: DatabaseReactionRole
 
@@ -120,8 +113,7 @@ class ReactionRolesServiceT(BaseService):
         :raise: RoleAlreadyExists
             If the role already exists
         """
-        await self.bot.rest.add_reaction(channel, message, emoji)
-        model = await DatabaseReactionRole.create(guild, channel, message, role, emoji)
+        model = await DatabaseReactionRole.create(guild, channel, message, type, max, roles, emojis)
 
         logger.info("Create Reaction role {} in guild {}", role, guild)
         return model

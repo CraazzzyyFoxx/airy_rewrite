@@ -4,7 +4,7 @@ import lightbulb
 from loguru import logger
 
 from airy.models.bot import Airy
-from airy.models import AiryPlugin
+from airy.models.plugin import AiryPlugin
 from airy.utils import RespondEmbed
 
 

@@ -5,7 +5,9 @@ import lightbulb
 from loguru import logger
 
 from airy.services.reactionrole import ReactionRolesService
-from airy.models import AirySlashContext, AiryPlugin, errors
+from airy.models.context import AirySlashContext
+from airy.models.plugin import AiryPlugin
+from airy.models import errors
 from airy.utils import (helpers,
                         has_permissions,
                         RespondEmbed,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import importlib
 import os
@@ -116,11 +118,6 @@ class Airy(lightbulb.BotApp, ABC):
         self.subscribe(hikari.GuildLeaveEvent, self.on_guild_leave)
         self.subscribe(hikari.MessageCreateEvent, self.on_message)
 
-    async def connect_db(self) -> None:
-        logger.info("Connecting to Database...")
-        await self.db.connect()
-        logger.info("Connected to Database.")
-
     ##############
     # EXTENSIONS #
     ##############
@@ -154,13 +151,6 @@ class Airy(lightbulb.BotApp, ABC):
 
         for ext_path in path.iterdir():
             if ext_path.is_dir():
-                glob = ext_path.rglob if recursive else ext_path.glob
-                # for ext_path_2 in glob("__init__.py"):
-                #     ext = str(ext_path_2.with_suffix("")).replace(os.sep, ".")
-                #     try:
-                #         self.load_extensions(ext)
-                #     except lightbulb.errors.ExtensionMissingLoad:
-                #         pass
                 try:
                     ext = str(ext_path.with_suffix("")).replace(os.sep, ".")
                     self.load_extensions(ext)
@@ -174,22 +164,6 @@ class Airy(lightbulb.BotApp, ABC):
     ############
 
     def load_service(self, *extensions: str) -> None:
-        """
-        Load external extension(s) into the bot. Extension name follows the format ``<directory>.<filename>``
-        Each extension **must** contain a function ``load`` which takes a single argument which will be the
-        ``BotApp`` instance you are loading the extension into.
-
-        Args:
-            extensions (:obj:`str`): The name of the extension(s) to load.
-
-        Returns:
-            ``None``
-
-        Raises:
-            :obj:`~.errors.ExtensionAlreadyLoaded`: If the extension has already been loaded.
-            :obj:`~.errors.ExtensionMissingLoad`: If the extension to be loaded does not contain a ``load`` function.
-            :obj:`~.errors.ExtensionNotFound`: If the extension to be loaded does not exist.
-        """
         if len(extensions) > 1 or not extensions:
             for service in extensions:
                 self.load_service(service)
@@ -217,22 +191,6 @@ class Airy(lightbulb.BotApp, ABC):
         self._current_service = None
 
     def unload_service(self, *services: str) -> None:
-        """
-        Unload external service(s) from the bot. This method relies on a function, ``unload``
-        existing in the services which the bot will use to remove all commands and/or plugins
-        from the bot.
-
-        Args:
-            services (:obj:`str`): The name of the extension(s) to unload.
-
-        Returns:
-            ``None``
-
-        Raises:
-            :obj:`~.errors.ExtensionNotLoaded`: If the extension has not been loaded.
-            :obj:`~.errors.ExtensionMissingUnload`: If the extension does not contain an ``unload`` function.
-            :obj:`~.errors.ExtensionNotFound`: If the extension to be unloaded does not exist.
-        """
         if len(services) > 1 or not services:
             for service in services:
                 self.unload_service(service)
@@ -260,17 +218,6 @@ class Airy(lightbulb.BotApp, ABC):
         self._current_service = None
 
     def reload_service(self, *services: str) -> None:
-        """
-        Reload bot service(s). This method is atomic and so the bot will
-        revert to the previous loaded state if a service encounters a problem
-        during unloading or loading.
-
-        Args:
-            services (:obj:`str`): The name of the service(s) to be reloaded.
-
-        Returns:
-            ``None``
-        """
         if len(services) > 1 or not services:
             for service in services:
                 self.reload_service(service)
@@ -350,13 +297,13 @@ class Airy(lightbulb.BotApp, ABC):
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         # loop.create_task(self.http_server.start())
-        await self.connect_db()
+        await self.db.connect()
         self.load_services_from("./airy/services")
         self.load_extensions_from("./airy/extensions")
 
     async def on_started(self, _: hikari.StartedEvent) -> None:
         user = self.get_me()
-        self._user_id = user.id if user else 810524655801991178
+        self._user_id = user.id if user else None
 
         logger.info(f"Startup complete, initialized as {user}.")
         activity = hikari.Activity(name="@Airy", type=hikari.ActivityType.LISTENING)
@@ -371,7 +318,6 @@ class Airy(lightbulb.BotApp, ABC):
 
     async def on_stop(self, _: hikari.StoppedEvent) -> None:
         await self.db.close()
-        logger.info("Closed database connection.")
 
     async def on_guild_available(self, event: hikari.GuildAvailableEvent) -> None:
         if self.is_started:
@@ -382,13 +328,11 @@ class Airy(lightbulb.BotApp, ABC):
 
         # Insert all guilds the bot is member of into the db global config on startup
         async with self.db.acquire() as con:
-            for guild_id in self._initial_guilds:
-                await con.execute(
-                    """
-                    INSERT INTO guild (guild_id) VALUES ($1)
+            await con.executemany(
+                """ INSERT INTO guild (guild_id) VALUES ($1)
                     ON CONFLICT (guild_id) DO NOTHING""",
-                    guild_id,
-                )
+                [(guild_id, ) for guild_id in self._initial_guilds],
+            )
             logger.info(f"Connected to {len(self._initial_guilds)} guilds.")
             self._initial_guilds = []
 

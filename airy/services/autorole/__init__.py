@@ -7,7 +7,7 @@ import lightbulb
 from loguru import logger
 
 from airy.models.bot import Airy
-from airy.models import DatabaseGuild
+from airy.models.db import DatabaseGuild
 from airy.services import BaseService
 from airy.utils import helpers
 

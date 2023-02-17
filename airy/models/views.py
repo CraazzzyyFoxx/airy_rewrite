@@ -22,7 +22,7 @@ __all__ = ("StopSelect",
            "AuthorOnlyNavigator")
 
 
-class StopSelect(miru.Select):
+class StopSelect(miru.TextSelect):
     """
     A select that stops the view after interaction.
     """

@@ -4,8 +4,10 @@ import abc
 import typing as t
 from contextlib import asynccontextmanager
 
-import asyncpg
+import asyncpg  # type: ignore
 import hikari
+
+from loguru import logger
 
 from airy.config import db_config
 from airy.models.errors import DatabaseStateConflictError
@@ -71,7 +73,9 @@ class Database:
         if self._is_closed:
             raise DatabaseStateConflictError("The database is closed.")
 
+        logger.info("Connecting to Database...")
         self._pool = await asyncpg.create_pool(dsn=self.dsn)
+        logger.info("Connected to Database.")
 
     async def close(self) -> None:
         """Close the connection pool."""
@@ -82,6 +86,7 @@ class Database:
 
         await self._pool.close()
         self._is_closed = True
+        logger.info("Closed database connection.")
 
     def terminate(self) -> None:
         """Terminate the connection pool."""
@@ -249,5 +254,3 @@ class DatabaseModel(abc.ABC):
 
     db: Database
     app: Airy
-
-

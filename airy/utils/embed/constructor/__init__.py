@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
 EmbedConstructorT = t.TypeVar("EmbedConstructorT", bound="EmbedConstructor")
 
 
-class MainSelect(miru.Select):
+class MainSelect(miru.TextSelect):
     def __init__(self, view: EmbedConstructorT):
         options = [value for name, value in select_options.items()
                    if view.is_action_enabled_for(name)]

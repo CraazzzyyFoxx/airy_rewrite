@@ -50,7 +50,7 @@ class DatabaseTimer(DatabaseModel):
         return DatabaseTimer(id=record.get("id"),
                              guild_id=hikari.Snowflake(record.get("guild_id")),
                              user_id=hikari.Snowflake(record.get("user_id")),
-                             channel_id=hikari.Snowflake(record.get("channel_id") if record.get("channel_id") else None)
+                             channel_id=hikari.Snowflake(record.get("channel_id")) if record.get("channel_id") else None
                              if record.get("channel_id") else None,
                              expires=record.get("expires"),
                              created=record.get("created"),
