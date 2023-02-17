@@ -12,9 +12,11 @@ from loguru import logger
 
 from airy.models.bot import Airy
 from airy.config import bot_config
-from airy.models import *
 from airy.etc.perms_str import get_perm_str
 from airy.etc import ColorEnum
+from airy.models.context import AiryContext, AirySlashContext, AiryPrefixContext
+from airy.models.errors import UserBlacklistedError, BotRoleHierarchyError, RoleHierarchyError, MemberExpectedError, \
+    InteractionTimeOutError
 from airy.utils import helpers, RespondEmbed
 
 ch = lightbulb.Plugin("Command Handler")
