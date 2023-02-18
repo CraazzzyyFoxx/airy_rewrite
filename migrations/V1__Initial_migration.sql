@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS reactionrole
   guild_id bigint not null references guild (guild_id) on delete cascade,
   channel_id bigint not null,
   message_id bigint not null,
+  type smallint not null default 0,
+  max smallint not null default 0,
   constraint un_reactionrole_guild_id_channel_id_message_id_role_id unique (guild_id, channel_id, message_id)
 );
 
