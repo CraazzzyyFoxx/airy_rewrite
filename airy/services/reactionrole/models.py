@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import enum
+import typing
 
 import attr
 import hikari
 from asyncpg import Record  # type:  ignore
 from cashews import Cache  # type:  ignore
 
+from airy.models import errors
 from airy.models.db.impl import DatabaseModel
 
 __all__ = ("DatabaseReactionRole", "DatabaseReactionRoleEntry", "ReactionRoleType")
@@ -16,7 +18,7 @@ cache.setup("mem://?size=1000", prefix="reactionrole")
 
 _insert_base_sql = """insert into reactionrole 
                        (guild_id, channel_id, message_id, type, max) 
-                       VALUES ($1, $2, $3, $4, $5)"""
+                       VALUES ($1, $2, $3, $4, $5) returning id"""
 
 _insert_entry_base_sql = """insert into reactionrole_entry (id, role_id, emoji) VALUES ($1, $2, $3)"""
 
@@ -62,7 +64,7 @@ class DatabaseReactionRole(DatabaseModel):
     entries: list[DatabaseReactionRoleEntry] = attr.field(factory=list)
 
     @classmethod
-    def serialize(cls, record: Record, entries: list[DatabaseReactionRoleEntry] = None):
+    def serialize(cls, record: Record, entries: typing.Optional[list[DatabaseReactionRoleEntry]] = None):
         return DatabaseReactionRole(id=record.get("id"),
                                     guild_id=hikari.Snowflake(record.get("guild_id")),
                                     channel_id=hikari.Snowflake(record.get("channel_id")),
@@ -91,7 +93,7 @@ class DatabaseReactionRole(DatabaseModel):
 
         records = await DatabaseReactionRole.db.fetch(sql, channel, message)
         if not records:
-            raise
+            return None
         entries = [DatabaseReactionRoleEntry.serialize(record) for record in records]
         model = cls.serialize(records[0], entries)
 
@@ -140,23 +142,14 @@ class DatabaseReactionRole(DatabaseModel):
             max: int,
             roles: list[hikari.Snowflake],
             emojis: list[hikari.Emoji],
-    ) -> DatabaseReactionRole | None:
-
-        record = await DatabaseReactionRole._fetch(channel, message)
-
-        if record:
-            return None
-
+    ) -> DatabaseReactionRole:
         model_id = await DatabaseReactionRole.db.fetchval(_insert_base_sql, guild, channel, message, type, max)
 
         entries = []
 
         for role, emoji in zip(roles, emojis):
-            model_entry_id = await DatabaseReactionRole.db.fetchval(_insert_entry_base_sql,
-                                                                    model_id, role, emoji.mention)
-            entries.append(
-                DatabaseReactionRoleEntry(id=model_entry_id, role_id=role, emoji=emoji)
-            )
+            await DatabaseReactionRole.db.execute(_insert_entry_base_sql, model_id, role, emoji.mention)
+            entries.append(DatabaseReactionRoleEntry(id=model_id, role_id=role, emoji=emoji))
 
         await cache.delete(key=f"reactionrole:{channel}:{message}")
 
@@ -183,23 +176,26 @@ class DatabaseReactionRole(DatabaseModel):
 
     async def delete(self) -> None:
         sql = """delete from reactionrole where channel_id=$1 and message_id=$2"""
-        await DatabaseReactionRole.db.execute(sql, self.channel_id, self.message_id, self.role_id)
+        await DatabaseReactionRole.db.execute(sql, self.channel_id, self.message_id)
 
         await cache.delete(key=f"reactionrole:{self.channel_id}:{self.message_id}")
 
     async def add_entries(self, entries: list[DatabaseReactionRoleEntry]) -> None:
         sql = """insert into reactionrole_entry (id, role_id, emoji) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"""
-        await self.db.executemany(sql, [attr.astuple(entry) for entry in entries])
+        await self.db.executemany(sql, [(entry.id, entry.role_id, entry.emoji.mention) for entry in entries])
         self.entries.extend(entries)
+        await cache.delete(key=f"reactionrole:{self.channel_id}:{self.message_id}")
 
     async def remove_entries(self, entries: list[DatabaseReactionRoleEntry]) -> None:
         sql = """delete from reactionrole_entry where id=$1 and role_id=$2 and emoji=$3"""
-        await self.db.executemany(sql, [attr.astuple(entry) for entry in entries])
+        await self.db.executemany(sql, [(entry.id, entry.role_id, entry.emoji.mention) for entry in entries])
 
         self.entries = list(set(self.entries.copy()) - set(entries))
 
         if not self.entries:
             await self.delete()
+
+        await cache.delete(key=f"reactionrole:{self.channel_id}:{self.message_id}")
 
     @classmethod
     async def delete_all_by_role(
@@ -219,5 +215,28 @@ class DatabaseReactionRole(DatabaseModel):
             channel: hikari.Snowflake,
             message: hikari.Snowflake,
     ) -> DatabaseReactionRole:
+        model = await cls._fetch(channel, message)
+        if not model:
+            raise errors.RoleDoesNotExist()
+        return model
 
-        return await cls._fetch(channel, message)
+    @classmethod
+    @cache(ttl="24h", key="reactionrole:{guild}")
+    async def fetch_all(cls, guild: hikari.Snowflake):
+        models = []
+
+        sql = """select * from reactionrole where guild_id=$1"""
+
+        sql_entry = """select * from reactionrole_entry where id=$1"""
+
+        records = await DatabaseReactionRole.db.fetch(sql, guild)
+        if not records:
+            return None
+
+        for record in records:
+            records_entry = await DatabaseReactionRoleEntry.db.fetch(sql_entry, record.get("id"))
+            entries = [DatabaseReactionRoleEntry.serialize(record_entry) for record_entry in records_entry]
+            model = cls.serialize(records[0], entries)
+            models.append(model)
+
+        return models

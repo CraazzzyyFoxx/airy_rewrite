@@ -2,9 +2,8 @@ import typing
 
 import hikari
 import lightbulb
-from loguru import logger
 
-from airy.services.reactionrole import ReactionRolesService
+from airy.services.reactionrole import ReactionRolesService, ReactionRoleType
 from airy.models.context import AirySlashContext
 from airy.models.plugin import AiryPlugin
 from airy.models import errors
@@ -50,7 +49,8 @@ async def reactionrole_create(ctx: AirySlashContext,
                               ) -> None:
     message = await helpers.parse_message_link(ctx, message_link)
     parsed_emoji = hikari.Emoji.parse(emoji)
-    await ReactionRolesService.create(ctx.guild_id, message.channel_id, message.id, role.id, parsed_emoji)
+    await ReactionRolesService.create(ctx.guild_id, message.channel_id, message.id, ReactionRoleType.NORMAL, 0,
+                                      [role.id], [parsed_emoji])
     embed = RespondEmbed.success(
         title="Done!",
         description=f"A new reactionrole pair {parsed_emoji.mention} : {role.mention} in channel "
@@ -58,9 +58,57 @@ async def reactionrole_create(ctx: AirySlashContext,
     await ctx.respond(embed=embed)
 
 
+# @reactionrole.child()
+# @lightbulb.add_checks(has_permissions(hikari.Permissions.MANAGE_ROLES))
+# @lightbulb.option("message_link", "Please input message link", hikari.OptionType.STRING)
+# @lightbulb.option("emojirole_pair", "Input emoji then role with space like :emoji: @role :emoji2: @role2",
+#                   type=hikari.OptionType.STRING)
+# @lightbulb.command("many_add", "Add emoji-role pair to a message", pass_options=True)
+# @lightbulb.implements(lightbulb.SlashSubCommand)
+# async def reactionrole_many_add(ctx: AirySlashContext,
+#                                 message_link: str,
+#                                 emojirole_pair: str
+#                                 ) -> None:
+#     skip = False
+#
+#     roles = []
+#     emojis = []
+#     emojirole_pair
+#     for index, entry in enumerate(emojirole_pair.split(" "), 1):
+#         if not skip:
+#             if index % 2 != 0:
+#                 role = await helpers.parse_role(ctx, entry)
+#                 if not role:
+#                     skip = True
+#                 else:
+#                     roles.append(role.id)
+#
+#             else:
+#                 try:
+#                     emoji = hikari.Emoji.parse(entry)
+#                 except ValueError:
+#                     skip = True
+#                 else:
+#                     emojis.append(emoji)
+#         else:
+#             skip = False
+#
+#     message = await helpers.parse_message_link(ctx, message_link)
+#     await ReactionRolesService.create(ctx.guild_id, message.channel_id, message.id, ReactionRoleType.NORMAL, 0, roles,
+#                                       emojis)
+#
+#     description = [f"A new reactionrole pair {emoji.mention} : <@&{role}>"
+#                    for role, emoji in zip(roles, emojis)]
+#
+#     description.append(f"In channel <#{message.channel_id}> has been created!")
+#
+#     embed = RespondEmbed.success(title="Done!", description="\n".join(description))
+#     await ctx.respond(embed=embed)
+
+
 @reactionrole.set_error_handler()
 async def reactionrole_error_handler(event: lightbulb.CommandErrorEvent):
-    error = event.exception.original
+    error = event.exception.original  # type: ignore
     if isinstance(error, hikari.NotFoundError):
         embed = RespondEmbed.error(
             title="Insufficient permissions",
@@ -105,7 +153,7 @@ async def reactionrole_remove(ctx: AirySlashContext,
                               ) -> None:
     message = await helpers.parse_message_link(ctx, message_link)
     if not message:
-        raise hikari.NotFoundError()
+        raise ValueError()
 
     model = await ReactionRolesService.delete(ctx.guild_id, message.channel_id, message.id, role.id)
 
@@ -128,16 +176,15 @@ async def reactionrole_show(ctx: AirySlashContext, message_link: str) -> None:
     if not message:
         raise hikari.NotFoundError()
 
-    models = await ReactionRolesService.get_all(message.channel_id, message.id)
-    if len(models) == 0:
+    model = await ReactionRolesService.get(message.channel_id, message.id)
+    if not model:
         await ctx.respond(embed=RespondEmbed.error("Reactionroles are missing"))
         return
 
-    model_ = models[0]
     description = [
-        f'[Message URL](https://discord.com/channels/{model_.guild_id}/{model_.channel_id}/{model_.message_id})\n\n']
-    for index, model in enumerate(models, 1):
-        description.append(f"**{index}.** {model.emoji.mention} : <@&{model.role_id}>")
+        f'[Message URL](https://discord.com/channels/{model.guild_id}/{model.channel_id}/{model.message_id})\n\n']
+    for index, entry in enumerate(model.entries, 1):
+        description.append(f"**{index}.** {entry.emoji.mention} : <@&{entry.role_id}>")
 
     e = RespondEmbed.success("Reaction Roles",
                              description="\n".join(description))
