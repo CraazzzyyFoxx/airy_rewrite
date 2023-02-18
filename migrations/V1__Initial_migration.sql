@@ -72,9 +72,15 @@ CREATE TABLE IF NOT EXISTS reactionrole
   guild_id bigint not null references guild (guild_id) on delete cascade,
   channel_id bigint not null,
   message_id bigint not null,
+  constraint un_reactionrole_guild_id_channel_id_message_id_role_id unique (guild_id, channel_id, message_id)
+);
+
+CREATE TABLE IF NOT EXISTS reactionrole_entry
+(
+  id int references reactionrole (id) on delete cascade,
   role_id bigint not null,
   emoji text not null,
-  constraint un_reactionrole_guild_id_channel_id_message_id_role_id unique (guild_id, channel_id, message_id, role_id)
+  constraint un_reactionrole_entry_id_role_id_emoji unique (id, role_id, emoji)
 );
 
 
