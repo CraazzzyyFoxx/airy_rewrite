@@ -11,6 +11,7 @@ from airy.services import BaseService
 from airy.utils import helpers
 
 from .models import HierarchyRoles, DatabaseSectionRole
+from ...models import errors
 
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -162,17 +163,19 @@ class SectionRolesServiceT(BaseService):
         :raise: RoleAlreadyExists
             If the role not found
         """
+        try:
+            model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
+        except errors.RoleDoesNotExist:
+            model = await DatabaseSectionRole.create(guild_id, role_id, hierarchy, entries_id)
+            logger.info("SectionRole created (id: {} entries: {}) in guild {}",
+                        model.role_id,
+                        len(model.entries),
+                        model.guild_id
+                        )
 
-        model: DatabaseSectionRole = await DatabaseSectionRole.fetch(guild_id, role_id)
+            return model
 
-        model = await DatabaseSectionRole.create(guild_id, role_id, hierarchy, entries_id)
-        logger.info("SectionRole created (id: {} entries: {}) in guild {}",
-                    model.role_id,
-                    len(model.entries),
-                    model.guild_id
-                    )
-
-        return model
+        raise errors.RoleAlreadyExists()
 
     async def update(
             self,
