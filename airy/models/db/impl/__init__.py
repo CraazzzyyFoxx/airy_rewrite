@@ -59,11 +59,6 @@ class Database:
         return self._config.password
 
     @property
-    def version(self) -> t.Optional[str]:
-        """The version of PostgreSQL used. May be None if not explicitly specified."""
-        return self._config.version
-
-    @property
     def dsn(self) -> str:
         """The connection URI used to connect to the database."""
         return f"postgres://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
