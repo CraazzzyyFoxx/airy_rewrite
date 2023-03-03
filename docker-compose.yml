@@ -5,7 +5,7 @@ services:
     image: postgres:latest
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432:5432}:5432"
+      - "${POSTGRES_PORT_DOCKER:-5432:5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-airy}
       POSTGRES_DB: ${POSTGRES_DB:-airy}
@@ -16,7 +16,7 @@ services:
       - ./db_scripts:/docker-entrypoint-initdb.d
       - .:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ogu}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ary} -d ${POSTGRES_DB:-airy}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,6 +26,9 @@ services:
         limits:
           cpus: '0.5'
           memory: 512MB
+    networks:
+      - postgres
+
 
   airy:
     container_name: airy
@@ -36,4 +39,9 @@ services:
     depends_on:
       - airy-db
     restart: unless-stopped
+    networks:
+      - postgres
 
+networks:
+  postgres:
+    driver: bridge
