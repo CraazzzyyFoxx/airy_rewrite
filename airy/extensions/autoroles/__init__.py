@@ -12,15 +12,15 @@ from airy.utils import RespondEmbed, SimplePages, to_str_permissions, Permission
 
 from airy.services.autorole import AutoRolesService
 
+if typing.TYPE_CHECKING:
+    from airy.models.bot import Airy
+
 auto_role_plugin = AiryPlugin('AutoRoles')
 auto_role_plugin.add_checks(lightbulb.guild_only)
 auto_role_plugin.add_checks(lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES,
                                                                    hikari.Permissions.MODERATE_MEMBERS))
 auto_role_plugin.add_checks(lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES,
                                                                        hikari.Permissions.MODERATE_MEMBERS))
-
-if typing.TYPE_CHECKING:
-    from airy.models.bot import Airy
 
 
 @auto_role_plugin.command()

@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  airy-db:
+    container_name: airy_db
+    image: postgres:latest
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432:5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airy}
+      POSTGRES_DB: ${POSTGRES_DB:-airy}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./db_scripts:/docker-entrypoint-initdb.d
+      - .:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ogu}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512MB
+
+  airy:
+    container_name: airy
+    build:
+        context: .
+        dockerfile: Dockerfile
+    command: ["python3.11", "-O", "starter.py", "run"]
+    depends_on:
+      - airy-db
+    restart: unless-stopped
+
