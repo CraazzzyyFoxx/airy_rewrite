@@ -54,8 +54,10 @@ class SectionRolesServiceT(BaseService):
             if model.role_id == event.role_id:
                 await model.delete()
             else:
-                await model.remove_entries([entry.role_id for entry in model.entries
-                                            if entry.role_id == entry.entry_id])
+                logger.warning([entry.entry_id for entry in model.entries
+                                            if event.role_id == entry.entry_id])
+                await model.remove_entries([entry.entry_id for entry in model.entries
+                                            if event.role_id == entry.entry_id])
 
     async def on_member_update(self, event: hikari.MemberUpdateEvent):
         me = self.bot.cache.get_member(event.guild_id, self.bot.user_id)

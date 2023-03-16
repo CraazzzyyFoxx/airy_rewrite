@@ -140,10 +140,12 @@ class DatabaseSectionRole(DatabaseModel):
     async def remove_entries(self, entries: list[hikari.Snowflake]):
         if not entries:
             return
-        await self.db.execute("""DELETE FROM sectionrole_entry where entry_id = ANY($1::bigint[])""",
-                              [int(entry) for entry in entries])
+        await self.db.execute("""DELETE FROM sectionrole_entry where entry_id = ANY($1::bigint[])""", entries)
         data = await DatabaseEntrySectionRole.fetch(self.role_id)
         self.entries = data
+
+        if not data:
+            await self.delete()
 
 
 @attr.define()
