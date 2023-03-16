@@ -9,4 +9,4 @@ RUN poetry config virtualenvs.create false
 RUN poetry install -n --only main
 
 COPY . ./
-CMD ["python3.11", "-O", "starter.py", "run"]
+CMD ["python3.11", "-O", "cli.py", "run"]
