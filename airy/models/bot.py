@@ -13,6 +13,7 @@ from importlib import util
 import hikari
 import lightbulb
 import miru
+from hikari.internal import signals, aio
 
 from loguru import logger
 
@@ -393,3 +394,22 @@ class Airy(lightbulb.BotApp, ABC):
         """Guild removal behaviour"""
         await self.db.wipe_guild(event.guild_id, keep_record=False)
         logger.info(f"Bot has been removed from guild {event.guild_id}, correlating data erased.")
+
+    async def __aenter__(self):
+        if self._closed_event:
+            raise hikari.errors.ComponentStateConflictError("bot is already running")
+
+        # if shard_ids is not None and shard_count is None:
+        #     raise TypeError("'shard_ids' must be passed with 'shard_count'")
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        loop = aio.get_or_make_loop()
+        if self._closing_event:
+            if self._closing_event.is_set():
+                await self._closing_event.wait()
+            else:
+                await self.close()
+
+        logger.info("successfully terminated")

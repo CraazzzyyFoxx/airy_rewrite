@@ -3,7 +3,6 @@ from pathlib import Path
 import sentry_sdk
 from loguru import logger
 
-from airy.config import bot_config
 from airy.models.bot import Airy
 
 bot = Airy()
