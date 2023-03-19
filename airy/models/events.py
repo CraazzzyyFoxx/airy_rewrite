@@ -5,11 +5,6 @@ import typing
 import attr
 import hikari
 
-
-from airy.utils.time import utcnow, format_relative
-
-from airy.models.db import DatabaseTimer, TimerEnum
-
 if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
 
@@ -22,10 +17,6 @@ __all__ = ("AiryEvent",
            "WarnCreateEvent",
            "WarnRemoveEvent",
            "WarnsClearEvent",
-           "BaseTimerEvent",
-           "MuteEvent",
-           "ReminderEvent",
-           "timers_dict_enum_to_class"
            )
 
 
@@ -146,47 +137,3 @@ class AutoModMessageFlagEvent(AiryGuildEvent):
     reason: typing.Optional[str] = None
 
 
-@attr.define()
-class BaseTimerEvent(AiryGuildEvent):
-    app: Airy
-    _guild_id: hikari.Snowflakeish
-    timer: DatabaseTimer
-
-    @property
-    def human_delta(self):
-        return format_relative(self.timer.created)
-
-    @property
-    def delta(self) -> typing.Union[float, int]:
-        return (self.timer.expires - utcnow()).total_seconds()
-
-
-@attr.define()
-class ReminderEvent(BaseTimerEvent):
-    app: Airy
-    _guild_id: hikari.Snowflakeish
-    timer: DatabaseTimer
-
-
-@attr.define()
-class MuteEvent(BaseTimerEvent):
-    app: Airy
-    _guild_id: hikari.Snowflakeish
-    timer: DatabaseTimer
-
-    @property
-    def muted_user_id(self):
-        if self.args:
-            return int(self.timer.args[1])
-        return None
-
-    @property
-    def role_id(self):
-        if self.args:
-            return int(self.timer.args[3])
-        return None
-
-
-timers_dict_enum_to_class = {TimerEnum.REMINDER: ReminderEvent,
-                             TimerEnum.MUTE: MuteEvent,
-                             }

@@ -36,14 +36,14 @@ class NavButton(Button):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
-        label: Optional[str] = None,
-        disabled: bool = False,
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
+            label: Optional[str] = None,
+            disabled: bool = False,
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(
             style=style,
@@ -55,15 +55,6 @@ class NavButton(Button):
             row=row,
         )
         self.view: AiryPages
-
-
-    @property
-    def url(self) -> None:
-        return None
-
-    @url.setter
-    def url(self, value: str) -> None:
-        raise AttributeError("NavButton cannot have attribute url.")
 
     async def before_page_change(self) -> None:
         """
@@ -80,13 +71,13 @@ class NextButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
-        label: Optional[str] = "Next",
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
+            label: Optional[str] = "Next",
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 
@@ -107,13 +98,13 @@ class PrevButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
-        label: Optional[str] = "Back",
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
+            label: Optional[str] = "Back",
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 
@@ -134,13 +125,13 @@ class FirstButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
-        label: Optional[str] = '≪',
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
+            label: Optional[str] = '≪',
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 
@@ -161,13 +152,13 @@ class LastButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
-        label: Optional[str] = '≫',
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.PRIMARY,
+            label: Optional[str] = '≫',
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 
@@ -188,19 +179,19 @@ class IndicatorButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.SECONDARY,
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        disabled: bool = False,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.SECONDARY,
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            disabled: bool = False,
+            row: Optional[int] = None,
     ):
         # Either label or emoji is required, so we pass a placeholder
         super().__init__(style=style, label="0/0", custom_id=custom_id, emoji=emoji, disabled=disabled, row=row)
 
     async def before_page_change(self) -> None:
-        self.label = f"{self.view.current_page+1}/{self.view.source.get_max_pages()}"
+        self.label = f"{self.view.current_page + 1}/{self.view.source.get_max_pages()}"
 
     async def callback(self, context: ViewContext) -> None:
         modal = Modal("Jump to page", autodefer=False)
@@ -227,13 +218,13 @@ class StopButton(NavButton):
     """
 
     def __init__(
-        self,
-        *,
-        style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.DANGER,
-        label: Optional[str] = 'Quit',
-        custom_id: Optional[str] = None,
-        emoji: Union[hikari.Emoji, str, None] = None,
-        row: Optional[int] = None,
+            self,
+            *,
+            style: Union[hikari.ButtonStyle, int] = hikari.ButtonStyle.DANGER,
+            label: Optional[str] = 'Quit',
+            custom_id: Optional[str] = None,
+            emoji: Union[hikari.Emoji, str, None] = None,
+            row: Optional[int] = None,
     ):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 

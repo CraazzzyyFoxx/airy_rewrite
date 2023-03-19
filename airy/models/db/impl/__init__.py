@@ -9,8 +9,9 @@ import hikari
 
 from loguru import logger
 
-from airy.config import db_config
 from airy.models.errors import DatabaseStateConflictError
+
+import config
 
 if t.TYPE_CHECKING:
     from airy.models.bot import Airy
@@ -21,7 +22,7 @@ class Database:
 
     def __init__(self, app: Airy) -> None:
         self._app: Airy = app
-        self._config = db_config
+        self._config = config.database
         self._pool: t.Optional[asyncpg.Pool] = None
         self._is_closed: bool = False
 

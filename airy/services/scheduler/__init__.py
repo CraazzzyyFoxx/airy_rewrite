@@ -1,30 +1,32 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import datetime
 import re
 import traceback
 import typing
-import typing as t
 
 import dateparser  # type: ignore
 import hikari
 
 from hikari.internal.enums import Enum
 from loguru import logger
+from tortoise.expressions import Q
 
-from airy.models.db import DatabaseTimer, DatabaseUser, TimerEnum
-from airy.models.events import BaseTimerEvent, timers_dict_enum_to_class
+from airy.models.db import DatabaseUser
+from airy.services.scheduler.events import BaseTimerEvent, timers_dict_enum_to_class
+from airy.services.scheduler.models import DatabaseTimer, TimerEnum
 from airy.utils.tasks import IntervalLoop
 from airy.utils.time import utcnow
 
-if t.TYPE_CHECKING:
+if typing.TYPE_CHECKING:
     from airy.models.bot import Airy
 
 __all__ = ("ConversionMode",
            "SchedulerService")
 
-BaseTimerEventT = t.TypeVar('BaseTimerEventT', bound=BaseTimerEvent)
+BaseTimerEventT = typing.TypeVar('BaseTimerEventT', bound=BaseTimerEvent)
 
 
 class ConversionMode(int, Enum):
@@ -42,11 +44,11 @@ class SchedulerServiceT:
     """
 
     def __init__(self):
-        self.app: t.Optional[Airy] = None
+        self.app: Airy | None = None
         self._is_started: bool = False
-        self._current_timer: t.Optional[DatabaseTimer] = None  # Currently, active timer that is being awaited
-        self._current_task: t.Optional[asyncio.Task] = None  # Current task that is handling current_timer
-        self._timer_loop: t.Optional[IntervalLoop] = None
+        self._current_timer: DatabaseTimer | None = None  # Currently, active timer that is being awaited
+        self._current_task: asyncio.Task | None = None  # Current task that is handling current_timer
+        self._timer_loop: IntervalLoop | None = None
 
     def current_timer(self):
         return self._current_timer
@@ -89,7 +91,7 @@ class SchedulerServiceT:
         self._current_timer = None
         logger.info("Scheduler shutdown complete.")
 
-    async def get_latest_timer(self, days: int = 7) -> t.Optional[DatabaseTimer]:
+    async def get_latest_timer(self, days: int = 7) -> DatabaseTimer | None:
         """Gets the latest timer in the specified range of days.
 
         Parameters
@@ -103,7 +105,7 @@ class SchedulerServiceT:
             The timer object that was found, if any.
         """
         await self.app.wait_until_started()
-        model = await DatabaseTimer.fetch_first(days)
+        model = await DatabaseTimer.filter(Q(expires__lte=utcnow() + datetime.timedelta(days=days))).first()
         return model
 
     async def _call_timer(self, timer: DatabaseTimer) -> None:
@@ -190,7 +192,7 @@ class SchedulerServiceT:
             The timer was not found.
         """
 
-        model = await DatabaseTimer.fetch(timer_id=timer_id)
+        model = await DatabaseTimer.filter(id=timer_id).first()
 
         if model is None:
             raise ValueError("Invalid timer_id: Timer not found.")
@@ -203,9 +205,9 @@ class SchedulerServiceT:
             event: TimerEnum,
             guild: hikari.SnowflakeishOr[hikari.PartialGuild],
             user: hikari.SnowflakeishOr[hikari.PartialUser],
-            channel: t.Optional[hikari.SnowflakeishOr[hikari.TextableChannel]] = None,
+            channel: hikari.SnowflakeishOr[hikari.TextableChannel] | None = None,
             *,
-            extra: t.Optional[dict] = None,
+            extra: dict | None = None,
     ) -> DatabaseTimer:
         """Create a new timer and schedule it.
 
@@ -231,9 +233,9 @@ class SchedulerServiceT:
         """
         if not self._is_started:
             raise hikari.ComponentStateConflictError("The scheduler is not running.")
-        model = await DatabaseTimer.create(guild=guild,
-                                           user=user,
-                                           channel=channel,
+        model = await DatabaseTimer.create(guild_id=guild,
+                                           user_id=user,
+                                           channel_id=channel,
                                            event=event,
                                            expires=expires.astimezone(datetime.timezone.utc),
                                            created=utcnow(),
@@ -261,7 +263,7 @@ class SchedulerServiceT:
         timer : Timer
             The timer object to update.
         """
-        await timer.update()
+        await timer.save()
 
         if self._current_timer and timer.expires < self._current_timer.expires:
             logger.debug("Reshuffled timers, created timer is now the latest timer.")
@@ -270,7 +272,7 @@ class SchedulerServiceT:
                     self._current_task.cancel()
                 self._current_task = asyncio.create_task(self._dispatch_timers())
 
-    async def cancel_timer(self, timer_id: int) -> t.Optional[DatabaseTimer]:
+    async def cancel_timer(self, timer_id: int) -> DatabaseTimer | None:
         """Prematurely cancel a timer before expiry. Returns the cancelled timer.
 
         Parameters
@@ -283,11 +285,11 @@ class SchedulerServiceT:
         Timer
             The cancelled timer object.
         """
-        model = await DatabaseTimer.fetch(timer_id=timer_id)
+        model = await self.get_timer(timer_id)
 
         if model is None:
             return None
-
+        copied = copy.deepcopy(model)
         await model.delete()
 
         if self._current_timer and self._current_timer.id == model.id:
@@ -295,33 +297,17 @@ class SchedulerServiceT:
                 self._current_task.cancel()
             self._current_task = asyncio.create_task(self._dispatch_timers())
 
-        return model
+        return copied
 
     async def convert_time(
             self,
-            timestr: str,
+            time_str: str,
             *,
-            user: t.Optional[hikari.SnowflakeishOr[hikari.PartialUser]] = None,
-            conversion_mode: t.Optional[ConversionMode] = None,
+            user: hikari.SnowflakeishOr[hikari.PartialUser] | None = None,
+            conversion_mode: ConversionMode | None = None,
             future_time: bool = False,
     ) -> datetime.datetime:
         """Try converting a string of human-readable time to a datetime object.
-
-        Parameters
-        ----------
-        timestr : str
-            The string containing the time.
-        user : t.Optional[hikari.SnowflakeishOr[hikari.PartialUser]], optional
-            The user whose preferences will be used in the case of timezones, by default None
-        force_mode : t.Optional[str], optional
-            If specified, forces either 'relative' or 'absolute' conversion, by default None
-        future_time : bool, optional
-            If True and the time specified is in the past, raise an error, by default False
-
-        Returns
-        -------
-        datetime.datetime
-            The converted datetime.datetime object.
 
         Raises
         ------
@@ -333,7 +319,7 @@ class SchedulerServiceT:
             Time is not in the future.
         """
         user_id = hikari.Snowflake(user) if user else None
-        logger.debug(f"String passed for time conversion: {timestr}")
+        logger.debug(f"String passed for time conversion: {time_str}")
 
         if not conversion_mode or conversion_mode == ConversionMode.RELATIVE:
             # Relative time conversion Get any pair of <number><word> with a single optional space in between,
@@ -360,7 +346,7 @@ class SchedulerServiceT:
                 "sec": 1,
                 "min": 60,
             }
-            matches = time_regex.findall(timestr)
+            matches = time_regex.findall(time_str)
             time = 0.0
 
             for input_str, category in matches:
@@ -394,7 +380,7 @@ class SchedulerServiceT:
                 timezone = model.tz
 
             time_parsed = dateparser.parse(
-                timestr, settings={"RETURN_AS_TIMEZONE_AWARE": True, "TIMEZONE": timezone, "NORMALIZE": True}
+                time_str, settings={"RETURN_AS_TIMEZONE_AWARE": True, "TIMEZONE": timezone, "NORMALIZE": True}
             )
 
             if not time_parsed:

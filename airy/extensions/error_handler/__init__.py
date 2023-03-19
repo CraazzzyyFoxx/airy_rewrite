@@ -11,13 +11,14 @@ import lightbulb
 from loguru import logger
 
 from airy.models.bot import Airy
-from airy.config import bot_config
 from airy.etc.perms_str import get_perm_str
 from airy.etc import ColorEnum
 from airy.models.context import AiryContext, AirySlashContext, AiryPrefixContext
 from airy.models.errors import UserBlacklistedError, BotRoleHierarchyError, RoleHierarchyError, MemberExpectedError, \
     InteractionTimeOutError
 from airy.utils import helpers, RespondEmbed
+
+import config
 
 ch = lightbulb.Plugin("Command Handler")
 
@@ -49,7 +50,7 @@ async def log_exc_to_channel(
         paginator.add_line(line)
 
     assert isinstance(ch.app, Airy)
-    channel_id = bot_config.errors_trace_channel
+    channel_id = config.bot.errors_trace_channel
 
     if not channel_id:
         return

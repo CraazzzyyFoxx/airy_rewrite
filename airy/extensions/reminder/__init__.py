@@ -13,12 +13,11 @@ from loguru import logger
 
 from airy.models.context import AirySlashContext
 from airy.models.plugin import AiryPlugin
-from airy.models.db import DatabaseTimer, TimerEnum
-from airy.models.events import ReminderEvent
 from airy.models.views import AuthorOnlyNavigator
 from airy.models.bot import Airy
-from airy.services.scheduler import SchedulerService
+from airy.services.scheduler import SchedulerService, TimerEnum, DatabaseTimer
 from airy.etc import ColorEnum
+from airy.services.scheduler.events import ReminderEvent
 from airy.utils import RespondEmbed, formats, utcnow
 
 

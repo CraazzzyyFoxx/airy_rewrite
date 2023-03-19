@@ -17,38 +17,41 @@ if typing.TYPE_CHECKING:
 
 
 class ReactionRolesServiceT(BaseService):
-    async def on_startup(self, event: hikari.StartedEvent):
-        self.bot.subscribe(hikari.MessageDeleteEvent, self.on_delete_message)
-        self.bot.subscribe(hikari.ReactionAddEvent, self._on_reaction_add)
-        self.bot.subscribe(hikari.ReactionDeleteEvent, self._on_reaction_remove)
-        self.bot.subscribe(hikari.RoleDeleteEvent, self.on_delete_role)
+    @classmethod
+    async def on_startup(cls, event: hikari.StartedEvent):
+        cls.bot.subscribe(hikari.MessageDeleteEvent, cls.on_delete_message)
+        cls.bot.subscribe(hikari.ReactionAddEvent, cls._on_reaction_add)
+        cls.bot.subscribe(hikari.ReactionDeleteEvent, cls._on_reaction_remove)
+        cls.bot.subscribe(hikari.RoleDeleteEvent, cls.on_delete_role)
 
-    async def on_shutdown(self, event: hikari.StoppedEvent | None = None):
-        self.bot.unsubscribe(hikari.MessageDeleteEvent, self.on_delete_message)
-        self.bot.unsubscribe(hikari.ReactionAddEvent, self._on_reaction_add)
-        self.bot.unsubscribe(hikari.ReactionDeleteEvent, self._on_reaction_remove)
-        self.bot.unsubscribe(hikari.RoleDeleteEvent, self.on_delete_role)
+    @classmethod
+    async def on_shutdown(cls, event: hikari.StoppedEvent | None = None):
+        cls.bot.unsubscribe(hikari.MessageDeleteEvent, cls.on_delete_message)
+        cls.bot.unsubscribe(hikari.ReactionAddEvent, cls._on_reaction_add)
+        cls.bot.unsubscribe(hikari.ReactionDeleteEvent, cls._on_reaction_remove)
+        cls.bot.unsubscribe(hikari.RoleDeleteEvent, cls.on_delete_role)
 
-    @staticmethod
-    async def on_delete_message(event: hikari.MessageDeleteEvent):
+    @classmethod
+    async def on_delete_message(cls, event: hikari.MessageDeleteEvent):
         model = await DatabaseReactionRole.fetch(event.channel_id, event.message_id)
         if model:
             await model.delete()
 
-    @staticmethod
-    async def on_delete_role(event: hikari.RoleDeleteEvent):
+    @classmethod
+    async def on_delete_role(cls, event: hikari.RoleDeleteEvent):
         await DatabaseReactionRole.delete_all_by_role(event.guild_id, event.role_id)
 
+    @classmethod
     async def _process(
-            self,
+            cls,
             event: hikari.ReactionAddEvent | hikari.ReactionDeleteEvent,
             added: bool = True
     ) -> None:
 
-        channel = self.bot.cache.get_guild_channel(event.channel_id)
-        me = self.bot.cache.get_member(channel.guild_id, self.bot.user_id)  # type: ignore
+        channel = cls.bot.cache.get_guild_channel(event.channel_id)
+        me = cls.bot.cache.get_member(channel.guild_id, cls.bot.user_id)  # type: ignore
 
-        if not me or self.bot.user_id == event.user_id:
+        if not me or cls.bot.user_id == event.user_id:
             return None
 
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
@@ -66,7 +69,7 @@ class ReactionRolesServiceT(BaseService):
         if not model:
             return
 
-        member = self.bot.cache.get_member(channel.guild_id, event.user_id)
+        member = cls.bot.cache.get_member(channel.guild_id, event.user_id)
         role_id = model.get_role_by_emoji(emoji)
         roles_id = [entry.role_id for entry in model.entries]
 
@@ -91,24 +94,27 @@ class ReactionRolesServiceT(BaseService):
 
         try:
             if action:
-                await self.bot.rest.add_role_to_member(guild=model.guild_id, user=event.user_id, role=role_id,
-                                                       reason="Reaction role")
+                await cls.bot.rest.add_role_to_member(guild=model.guild_id, user=event.user_id, role=role_id,
+                                                      reason="Reaction role")
                 logger.info("Add Reaction role {} to user {} in guild {}", role_id, member.id, model.guild_id)
             else:
-                await self.bot.rest.remove_role_from_member(guild=model.guild_id, user=event.user_id, role=role_id,
-                                                            reason="Reaction role")
+                await cls.bot.rest.remove_role_from_member(guild=model.guild_id, user=event.user_id, role=role_id,
+                                                           reason="Reaction role")
                 logger.info("Remove Reaction role {} from user {} in guild {}", role_id, member.id, model.guild_id)
         except (hikari.ForbiddenError, hikari.NotFoundError):
             pass
 
-    async def _on_reaction_add(self, event: hikari.ReactionAddEvent):
-        await self._process(event, added=True)
+    @classmethod
+    async def _on_reaction_add(cls, event: hikari.ReactionAddEvent):
+        await cls._process(event, added=True)
 
-    async def _on_reaction_remove(self, event: hikari.ReactionDeleteEvent):
-        await self._process(event, added=False)
+    @classmethod
+    async def _on_reaction_remove(cls, event: hikari.ReactionDeleteEvent):
+        await cls._process(event, added=False)
 
+    @classmethod
     async def create(
-            self,
+            cls,
             guild: hikari.Snowflake,
             channel: hikari.Snowflake,
             message: hikari.Snowflake,
@@ -127,19 +133,20 @@ class ReactionRolesServiceT(BaseService):
             model = await DatabaseReactionRole.create(guild, channel, message, role_type, max_roles, roles, emojis)
 
         for role, emoji in zip(roles, emojis):
-            await self.bot.rest.add_reaction(channel, message, emoji)
+            await cls.bot.rest.add_reaction(channel, message, emoji)
             logger.info("Create Reaction role pair `{} : {}` in guild {}", emoji, role, guild)
         return model
 
+    @classmethod
     async def delete(
-            self,
+            cls,
             guild: hikari.Snowflake,
             channel: hikari.Snowflake,
             message: hikari.Snowflake,
             role: hikari.Snowflake,
     ) -> DatabaseReactionRoleEntry | None:
         try:
-            msg = await self.bot.rest.fetch_message(channel, message)
+            msg = await cls.bot.rest.fetch_message(channel, message)
         except (hikari.NotFoundError, hikari.ForbiddenError):
             return None
 
@@ -155,8 +162,9 @@ class ReactionRolesServiceT(BaseService):
                 logger.info("Remove Reaction role {} in guild {}", role, guild)
                 return entry
 
-    @staticmethod
+    @classmethod
     async def get(
+            cls,
             channel: hikari.Snowflake,
             message: hikari.Snowflake,
     ) -> DatabaseReactionRole | None:

@@ -14,45 +14,51 @@ from airy.utils import helpers
 from .models import DatabaseAutoRole
 
 
-class AutoRolesServiceT(BaseService):
-    async def on_startup(self, event: hikari.StartedEvent):
-        self.bot.subscribe(hikari.MemberCreateEvent, self.on_member_join)
-        self.bot.subscribe(hikari.RoleDeleteEvent, self.on_role_delete)
+class AutoRolesService(BaseService):
+    @classmethod
+    async def on_startup(cls, event: hikari.StartedEvent):
+        cls.bot.subscribe(hikari.MemberCreateEvent, cls.on_member_join)
+        cls.bot.subscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
 
-    async def on_shutdown(self, event: hikari.StoppedEvent = None):
-        self.bot.unsubscribe(hikari.MemberCreateEvent, self.on_member_join)
-        self.bot.unsubscribe(hikari.RoleDeleteEvent, self.on_role_delete)
+    @classmethod
+    async def on_shutdown(cls, event: hikari.StoppedEvent = None):
+        cls.bot.unsubscribe(hikari.MemberCreateEvent, cls.on_member_join)
+        cls.bot.unsubscribe(hikari.RoleDeleteEvent, cls.on_role_delete)
 
-    async def on_role_delete(self, event: hikari.RoleDeleteEvent):
+    @classmethod
+    async def on_role_delete(cls, event: hikari.RoleDeleteEvent):
         await DatabaseAutoRole.db.execute("""delete from autorole where guild_id=$1 and role_id=$2""",
                                           event.guild_id, event.role_id)
 
-    async def on_member_join(self, event: hikari.MemberCreateEvent):
-        me = self.bot.cache.get_member(event.guild_id, self.bot.user_id)
+    @classmethod
+    async def on_member_join(cls, event: hikari.MemberCreateEvent):
+        me = cls.bot.cache.get_member(event.guild_id, cls.bot.user_id)
         if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
             return
-        models = await self.get_all_for_guild(event.guild_id)
+        models = await cls.get_all_for_guild(event.guild_id)
 
         if not models:
             return
 
         async with asyncio.TaskGroup() as tg:
             for model in models:
-                tg.create_task(self.bot.rest.add_role_to_member(model.guild_id,
-                                                                event.user_id,
-                                                                model.role_id,
-                                                                reason=f"AutoRole for the joined member")
+                tg.create_task(cls.bot.rest.add_role_to_member(model.guild_id,
+                                                               event.user_id,
+                                                               model.role_id,
+                                                               reason=f"AutoRole for the joined member")
                                )
                 logger.info("Added AutoRole {} to member {} in guild {}",
                             model.role_id,
                             event.user_id,
                             model.role_id)
 
-    async def on_member_leave(self, event: hikari.MemberDeleteEvent):
+    @classmethod
+    async def on_member_leave(cls, event: hikari.MemberDeleteEvent):
         pass
 
+    @classmethod
     async def create(
-            self,
+            cls,
             guild: hikari.Snowflake,
             role: hikari.Snowflake
     ) -> DatabaseAutoRole:
@@ -66,13 +72,14 @@ class AutoRolesServiceT(BaseService):
             If the role already exists
 
         """
-        if not self._is_started:
+        if not cls._is_started:
             raise hikari.ComponentStateConflictError("The AutoRolesService is not running.")
 
         return await DatabaseAutoRole.create(guild, role)
 
+    @classmethod
     async def delete(
-            self,
+            cls,
             guild: hikari.Snowflake,
             role: hikari.Snowflake
     ) -> DatabaseAutoRole:
@@ -85,13 +92,14 @@ class AutoRolesServiceT(BaseService):
         :raise: RoleDoesNotExist
             If the role not found
         """
-        if not self._is_started:
+        if not cls._is_started:
             raise hikari.ComponentStateConflictError("The AutoRolesService is not running.")
 
         return await DatabaseAutoRole.delete(guild, role)
 
+    @classmethod
     async def get(
-            self,
+            cls,
             guild: hikari.Snowflake,
             role: hikari.Snowflake
     ) -> typing.Optional[DatabaseAutoRole]:
@@ -104,13 +112,14 @@ class AutoRolesServiceT(BaseService):
         :raise: RoleDoesNotExist
             If the role not found
         """
-        if not self._is_started:
+        if not cls._is_started:
             raise hikari.ComponentStateConflictError("The AutoRolesService is not running.")
 
         return await DatabaseAutoRole.fetch(guild, role)
 
+    @classmethod
     async def get_all_for_guild(
-            self,
+            cls,
             guild: hikari.Snowflake
     ) -> list[DatabaseAutoRole]:
         """
@@ -118,13 +127,14 @@ class AutoRolesServiceT(BaseService):
         :param guild:
         :return: list[DatabaseAutoRole]
         """
-        if not self._is_started:
+        if not cls._is_started:
             raise hikari.ComponentStateConflictError("The AutoRolesService is not running.")
 
         return await DatabaseAutoRole.fetch_all(guild)
 
+    @classmethod
     async def update_re_assigns_roles(
-            self,
+            cls,
             guild: hikari.Snowflake,
             value: bool
     ) -> None:
@@ -133,9 +143,6 @@ class AutoRolesServiceT(BaseService):
         if model:
             model.re_assigns_roles = value
             await model.update()
-
-
-AutoRolesService = AutoRolesServiceT()
 
 
 def load(bot: "Airy"):

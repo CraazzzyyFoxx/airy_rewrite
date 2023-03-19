@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import sentry_sdk
 from loguru import logger
 

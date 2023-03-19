@@ -13,14 +13,16 @@ from importlib import util
 import hikari
 import lightbulb
 import miru
-from hikari.internal import signals, aio
 
+from hikari.internal import aio
 from loguru import logger
+from tortoise import Tortoise
 
-from airy.config import bot_config, BotConfig
 from airy.models.context import *
 from airy.models import errors
 from airy.models.db.impl import Database
+
+import config
 
 
 class _ServiceT(t.Protocol):
@@ -44,9 +46,9 @@ class Airy(lightbulb.BotApp, ABC):
                 | hikari.Intents.MESSAGE_CONTENT
         )
         super(Airy, self).__init__(
-            bot_config.token,
+            config.bot.token,
             prefix="dev",
-            default_enabled_guilds=bot_config.dev_guilds if bot_config.dev_mode else (),
+            default_enabled_guilds=config.bot.dev_guilds if config.bot.dev_mode else (),
             intents=intents,
             help_slash_command=False,
             logs=None,
@@ -68,7 +70,7 @@ class Airy(lightbulb.BotApp, ABC):
         """Bot startup status"""
         self.skip_first_db_backup = True
         """Set too False to back up DB on bot startup too"""
-        self._config = bot_config
+        self._config = config.bot
         """Bot config"""
         self.db = Database(self)
 
@@ -80,7 +82,7 @@ class Airy(lightbulb.BotApp, ABC):
         self.create_subscriptions()
 
     @property
-    def config(self) -> BotConfig:
+    def config(self) -> config.BotConfig:
         return self._config
 
     @property
@@ -299,6 +301,7 @@ class Airy(lightbulb.BotApp, ABC):
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         # loop.create_task(self.http_server.start())
         await self.db.connect()
+        await Tortoise.init(config.tortoise_config)
         self.load_services_from("./airy/services")
         self.load_extensions_from("./airy/extensions")
 
@@ -310,7 +313,7 @@ class Airy(lightbulb.BotApp, ABC):
         activity = hikari.Activity(name="@Airy", type=hikari.ActivityType.LISTENING)
         await self.update_presence(activity=activity)
 
-        if bot_config.dev_mode:
+        if config.bot.dev_mode:
             logger.warning("Developer mode is enabled!")
 
     async def on_stopping(self, _: hikari.StoppingEvent) -> None:
@@ -319,6 +322,7 @@ class Airy(lightbulb.BotApp, ABC):
 
     async def on_stop(self, _: hikari.StoppedEvent) -> None:
         await self.db.close()
+        await Tortoise.close_connections()
 
     async def on_guild_available(self, event: hikari.GuildAvailableEvent) -> None:
         if self.is_started:

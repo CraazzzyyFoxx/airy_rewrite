@@ -8,24 +8,27 @@ if typing.TYPE_CHECKING:
 
 
 class BaseService:
-    def __init__(self,):
-        self.bot: "Airy" = None
-        self._is_started: bool = False
+    bot: "Airy" = None
+    _is_started: bool = False
 
-    async def on_startup(self, event: hikari.StartedEvent):
+    @classmethod
+    async def on_startup(cls, event: hikari.StartedEvent):
         pass
 
-    async def on_shutdown(self, event: hikari.StoppedEvent = None):
+    @classmethod
+    async def on_shutdown(cls, event: hikari.StoppedEvent = None):
         pass
 
-    def start(self, bot: "Airy"):
-        self.bot = bot
-        self._is_started = True
-        self.bot.subscribe(hikari.StartedEvent, self.on_startup)
-        self.bot.subscribe(hikari.StoppedEvent, self.on_shutdown)
+    @classmethod
+    def start(cls, bot: "Airy"):
+        cls.bot = bot
+        cls._is_started = True
+        cls.bot.subscribe(hikari.StartedEvent, cls.on_startup)
+        cls.bot.subscribe(hikari.StoppedEvent, cls.on_shutdown)
 
-    def shutdown(self, bot: "Airy"):
-        self._is_started = False
-        self.bot.unsubscribe(hikari.StartedEvent, self.on_startup)
-        self.bot.unsubscribe(hikari.StoppedEvent, self.on_shutdown)
-        bot.create_task(self.on_shutdown())
+    @classmethod
+    def shutdown(cls, bot: "Airy"):
+        cls._is_started = False
+        cls.bot.unsubscribe(hikari.StartedEvent, cls.on_startup)
+        cls.bot.unsubscribe(hikari.StoppedEvent, cls.on_shutdown)
+        bot.create_task(cls.on_shutdown())

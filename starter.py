@@ -36,7 +36,7 @@ async def main():
             app=starlette_app,
             port=8080,
             use_colors=True,
-            host="localhost",
+            host="0.0.0.0",
             timeout_keep_alive=0,
         )
     )

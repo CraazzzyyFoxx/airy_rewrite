@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import typing
-import typing as t
 from enum import IntEnum
 
-import attr
 import hikari
 
-from airy.models.errors import RoleAlreadyExists, RoleDoesNotExist
-from airy.models.db.impl import DatabaseModel
+from tortoise import Model, fields
+
 
 __all__ = ("DatabaseSectionRole", "DatabaseEntrySectionRole", "HierarchyRoles")
 
@@ -33,138 +30,30 @@ class HierarchyRoles(IntEnum):
         return value
 
     @classmethod
-    def to_choices(cls) -> t.List[hikari.CommandChoice]:
+    def to_choices(cls) -> list[hikari.CommandChoice]:
         return [hikari.CommandChoice(name=name, value=str(value.value)) for name, value in cls._member_map_.items()]
 
 
-@attr.define()
-class DatabaseSectionRole(DatabaseModel):
-    id: int
-    guild_id: hikari.Snowflake
-    role_id: hikari.Snowflake
-    hierarchy: HierarchyRoles
+class DatabaseSectionRole(Model):
+    id: int = fields.IntField(pk=True)
+    guild_id: hikari.Snowflake = fields.BigIntField()
+    role_id: hikari.Snowflake = fields.BigIntField(unique=True)
+    hierarchy: HierarchyRoles = fields.IntEnumField(HierarchyRoles)
 
-    entries: typing.List[DatabaseEntrySectionRole] = attr.Factory(list)
+    entries: fields.ReverseRelation["DatabaseEntrySectionRole"]
 
-    @classmethod
-    async def create(cls,
-                     guild: hikari.Snowflake,
-                     role: hikari.Snowflake,
-                     hierarchy: HierarchyRoles,
-                     entries: list[hikari.Snowflake]
-                     ):
-        record = await cls.db.fetchrow("""select * from sectionrole where guild_id = $1 and role_id = $2 """,
-                                       guild,
-                                       role)
-        if record:
-            raise RoleAlreadyExists()
+    class Meta:
+        """Metaclass to set table name and description"""
 
-        id_ = await cls.db.fetch("""INSERT INTO sectionrole (guild_id, role_id, hierarchy) 
-                                VALUES ($1, $2, $3) RETURNING id""",
-                                 hikari.Snowflake(guild),
-                                 hikari.Snowflake(role),
-                                 hierarchy
-                                 )
-
-        await cls.db.executemany("""INSERT INTO sectionrole_entry (role_id, entry_id)
-                                    VALUES ($1, $2) returning id""",
-                                 [(hikari.Snowflake(role), hikari.Snowflake(entry)) for entry in entries])
-
-        entries = await DatabaseEntrySectionRole.fetch(role)
-
-        return DatabaseSectionRole(id=id_[0],
-                                   guild_id=hikari.Snowflake(guild),
-                                   role_id=hikari.Snowflake(role),
-                                   hierarchy=hierarchy,
-                                   entries=entries
-                                   )
-
-    @classmethod
-    async def fetch(cls,
-                    guild: hikari.Snowflake,
-                    role: hikari.Snowflake) -> DatabaseSectionRole | None:
-        record = await cls.db.fetchrow("""select * from sectionrole where guild_id = $1 and role_id = $2 """,
-                                       guild,
-                                       role)
-        if not record:
-            raise RoleDoesNotExist()
-
-        entries = await DatabaseEntrySectionRole.fetch(role)
-
-        return DatabaseSectionRole(id=record.get("id"),
-                                   guild_id=hikari.Snowflake(record.get("guild_id")),
-                                   role_id=hikari.Snowflake(record.get("role_id")),
-                                   hierarchy=HierarchyRoles(record.get("hierarchy")),
-                                   entries=entries
-                                   )
-
-    async def update(self):
-        await self.db.execute("""INSERT INTO sectionrole (guild_id, role_id, hierarchy)
-                                    VALUES ($1, $2, $3)
-                                    ON CONFLICT (guild_id, role_id) DO
-                                    UPDATE SET hierarchy = $3""",
-                              self.guild_id,
-                              self.role_id,
-                              self.hierarchy)
-
-    async def delete(self):
-        await self.db.execute("""DELETE FROM sectionrole where guild_id= $1 and role_id = $2""",
-                              self.guild_id,
-                              self.role_id)
-
-    @classmethod
-    async def fetch_all(cls, guild: hikari.Snowflake) -> list[DatabaseSectionRole]:
-        records = await cls.db.fetch("""select * from sectionrole where guild_id = $1""",
-                                     guild,
-                                     )
-        if not records:
-            return []
-
-        return [DatabaseSectionRole(id=record.get("id"),
-                                    guild_id=hikari.Snowflake(record.get("guild_id")),
-                                    role_id=hikari.Snowflake(record.get("role_id")),
-                                    hierarchy=HierarchyRoles(record.get("hierarchy")),
-                                    entries=await DatabaseEntrySectionRole.fetch(record.get("role_id"))
-                                    )
-                for record in records]
-
-    async def add_entries(self, entries: list[hikari.Snowflake]):
-        if not entries:
-            return
-        await self.db.executemany("""INSERT INTO sectionrole_entry (role_id, entry_id)
-                                            VALUES ($1, $2)""",
-                                  [(hikari.Snowflake(self.role_id), hikari.Snowflake(entry)) for entry in entries])
-        data = await DatabaseEntrySectionRole.fetch(self.role_id)
-        self.entries = data
-
-    async def remove_entries(self, entries: list[hikari.Snowflake]):
-        if not entries:
-            return
-        await self.db.execute("""DELETE FROM sectionrole_entry where entry_id = ANY($1::bigint[])""", entries)
-        data = await DatabaseEntrySectionRole.fetch(self.role_id)
-        self.entries = data
-
-        if not data:
-            await self.delete()
+        table = "sectionrole"
 
 
-@attr.define()
-class DatabaseEntrySectionRole(DatabaseModel):
-    id: int
-    role_id: hikari.Snowflake
-    entry_id: hikari.Snowflake
+class DatabaseEntrySectionRole(Model):
+    id: int = fields.IntField(pk=True)
+    entry_id: hikari.Snowflake = fields.BigIntField()
+    role: hikari.Snowflake = fields.ForeignKeyField("main.DatabaseSectionRole", related_name="entries", to_field="role_id")
 
-    @classmethod
-    async def fetch(cls, role: hikari.Snowflake) -> list[DatabaseEntrySectionRole]:
-        records = await cls.db.fetch("""select * from sectionrole_entry where role_id = $1""",
-                                     hikari.Snowflake(role))
+    class Meta:
+        """Metaclass to set table name and description"""
 
-        return [DatabaseEntrySectionRole(id=record.get("id"),
-                                         entry_id=hikari.Snowflake(record.get("entry_id")),
-                                         role_id=hikari.Snowflake(record.get("role_id")))
-                for record in records]
-
-    async def delete(self):
-        await self.db.fetch("""DELETE FROM sectionrole_entry where role_id = $1 and entry_id=$2""",
-                            self.role_id,
-                            self.entry_id)
+        table = "sectionrole_entry"
