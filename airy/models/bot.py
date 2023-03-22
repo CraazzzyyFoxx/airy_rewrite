@@ -186,7 +186,7 @@ class Airy(lightbulb.BotApp, ABC):
         self._current_service = srv
 
         if not hasattr(module, "load"):
-            logger.error("Service {} not loaded", module)
+            logger.warning("Service {} not loaded", module)
         else:
             srv.load(self)
             self.services.append(service)
@@ -300,8 +300,8 @@ class Airy(lightbulb.BotApp, ABC):
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         # loop.create_task(self.http_server.start())
-        await self.db.connect()
-        await Tortoise.init(config.tortoise_config)
+        # await self.db.connect()
+        # await Tortoise.init(config.tortoise_config)
         self.load_services_from("./airy/services")
         self.load_extensions_from("./airy/extensions")
 
@@ -321,8 +321,9 @@ class Airy(lightbulb.BotApp, ABC):
         logger.info("Bot is shutting down...")
 
     async def on_stop(self, _: hikari.StoppedEvent) -> None:
-        await self.db.close()
-        await Tortoise.close_connections()
+        # await self.db.close()
+        # await Tortoise.close_connections()
+        pass
 
     async def on_guild_available(self, event: hikari.GuildAvailableEvent) -> None:
         if self.is_started:
@@ -402,18 +403,17 @@ class Airy(lightbulb.BotApp, ABC):
     async def __aenter__(self):
         if self._closed_event:
             raise hikari.errors.ComponentStateConflictError("bot is already running")
-
+        await self.db.connect()
         # if shard_ids is not None and shard_count is None:
         #     raise TypeError("'shard_ids' must be passed with 'shard_count'")
         await self.start()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        loop = aio.get_or_make_loop()
         if self._closing_event:
             if self._closing_event.is_set():
                 await self._closing_event.wait()
             else:
                 await self.close()
-
+        await self.db.close()
         logger.info("successfully terminated")

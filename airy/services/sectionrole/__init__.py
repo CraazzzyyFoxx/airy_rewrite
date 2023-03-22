@@ -115,7 +115,7 @@ class SectionRolesService(BaseService):
                         await cls._remove_role(event.member, role_model.role_id)
 
     @classmethod
-    async def _add_role(cls, member: hikari.Member, role_id: hikari.Snowflake):
+    async def _add_role(cls, member: hikari.Member, role_id: int):
         if role_id not in member.role_ids:
             await member.add_role(role_id)
 
@@ -125,7 +125,7 @@ class SectionRolesService(BaseService):
                          member.guild_id)
 
     @classmethod
-    async def _remove_role(cls, member: hikari.Member, role_id: hikari.Snowflake):
+    async def _remove_role(cls, member: hikari.Member, role_id: int):
         if role_id in member.role_ids:
             await member.remove_role(role_id)
 
@@ -138,8 +138,8 @@ class SectionRolesService(BaseService):
     @classmethod
     async def get(
             cls,
-            guild_id: hikari.Snowflake,
-            role_id: hikari.Snowflake
+            guild_id: int,
+            role_id: int
     ) -> tuple[int, DatabaseSectionRole | None]:
         model: DatabaseSectionRole = (await DatabaseSectionRole
                                       .filter(guild_id=guild_id, role_id=role_id)
@@ -153,7 +153,7 @@ class SectionRolesService(BaseService):
     @classmethod
     async def get_all(
             cls,
-            guild_id: hikari.Snowflake,
+            guild_id: int,
     ) -> tuple[int, list[DatabaseSectionRole]]:
         models = (await DatabaseSectionRole
                   .filter(guild_id=guild_id)
@@ -166,9 +166,9 @@ class SectionRolesService(BaseService):
     @classmethod
     async def create(
             cls,
-            guild_id: hikari.Snowflake,
-            role_id: hikari.Snowflake,
-            entries_id: list[hikari.Snowflake],
+            guild_id: int,
+            role_id: int,
+            entries_id: list[int],
             hierarchy: HierarchyRoles
     ) -> tuple[int, DatabaseSectionRole | None]:
         model: DatabaseSectionRole = (await DatabaseSectionRole
@@ -193,9 +193,9 @@ class SectionRolesService(BaseService):
     @classmethod
     async def update(
             cls,
-            guild_id: hikari.Snowflake,
-            role_id: hikari.Snowflake,
-            entries_id: list[hikari.Snowflake] = None,
+            guild_id: int,
+            role_id: int,
+            entries_id: list[int] = None,
             hierarchy: HierarchyRoles = None,
     ) -> tuple[int, DatabaseSectionRole | None]:
         model: DatabaseSectionRole = (await DatabaseSectionRole
@@ -232,8 +232,8 @@ class SectionRolesService(BaseService):
     @classmethod
     async def delete(
             cls,
-            guild_id: hikari.Snowflake,
-            role_id: hikari.Snowflake,
+            guild_id: int,
+            role_id: int,
     ) -> tuple[int, DatabaseSectionRole | None]:
         """
 

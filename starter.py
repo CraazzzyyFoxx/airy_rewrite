@@ -4,8 +4,9 @@ import platform
 
 import uvicorn
 from loguru import logger
+from tortoise import Tortoise
 
-from airy.api import starlette_app
+import config
 from airy.utils import logging
 
 logging.setup()
@@ -27,14 +28,17 @@ if os.name != "nt":  # Lol imagine using Windows
 
 
 async def main():
+    await Tortoise.init(config.tortoise_config)
     from airy.models.bot import Airy
 
     bot = Airy()
 
+    from airy.api import starlette_app
+
     webserver = uvicorn.Server(
         config=uvicorn.Config(
             app=starlette_app,
-            port=8080,
+            port=8081,
             use_colors=True,
             host="0.0.0.0",
             timeout_keep_alive=0,
@@ -43,6 +47,8 @@ async def main():
 
     async with bot:
         await webserver.serve()
+
+    await Tortoise.close_connections()
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from enum import IntEnum
 
+from pydantic import fields
+
 import hikari
 
 from tortoise import Model, fields
-
 
 __all__ = ("DatabaseSectionRole", "DatabaseEntrySectionRole", "HierarchyRoles")
 
@@ -36,8 +37,8 @@ class HierarchyRoles(IntEnum):
 
 class DatabaseSectionRole(Model):
     id: int = fields.IntField(pk=True)
-    guild_id: hikari.Snowflake = fields.BigIntField()
-    role_id: hikari.Snowflake = fields.BigIntField(unique=True)
+    guild_id: int = fields.BigIntField()
+    role_id: int = fields.BigIntField(unique=True)
     hierarchy: HierarchyRoles = fields.IntEnumField(HierarchyRoles)
 
     entries: fields.ReverseRelation["DatabaseEntrySectionRole"]
@@ -50,8 +51,8 @@ class DatabaseSectionRole(Model):
 
 class DatabaseEntrySectionRole(Model):
     id: int = fields.IntField(pk=True)
-    entry_id: hikari.Snowflake = fields.BigIntField()
-    role: hikari.Snowflake = fields.ForeignKeyField("main.DatabaseSectionRole", related_name="entries", to_field="role_id")
+    entry_id: int = fields.BigIntField()
+    role: int = fields.ForeignKeyField("main.DatabaseSectionRole", related_name="entries", to_field="role_id")
 
     class Meta:
         """Metaclass to set table name and description"""

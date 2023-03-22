@@ -9,7 +9,7 @@ import hikari
 from tortoise import Model, fields
 
 
-class TimerEnum(enum.IntEnum):
+class TimerEnum(int, enum.Enum):
     NONE = 0
     REMINDER = 1
     MUTE = 2
